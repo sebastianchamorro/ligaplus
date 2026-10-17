@@ -260,6 +260,30 @@ h1, h2, h3 {
   margin: 22px 0;
 }
 
+.tournament-switcher {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  background: var(--paper-tint);
+  border-radius: var(--radius-md);
+  margin: 0 0 22px;
+}
+
+.tournament-switcher .pills {
+  margin: 0;
+}
+
+.tournament-switcher-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--green);
+}
+
 .pill {
   border: 1.5px solid var(--line);
   background: #fff;

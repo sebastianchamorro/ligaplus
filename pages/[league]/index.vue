@@ -136,23 +136,27 @@ function formatKickoff(iso: string | null) {
         </div>
       </section>
 
-      <div v-if="(tournaments?.length ?? 0) > 1" class="pills">
-        <button
-          v-for="t in tournaments"
-          :key="t.id"
-          class="pill"
-          :class="{ active: t.id === selectedTournamentId }"
-          @click="selectedTournamentId = t.id"
-        >
-          {{ t.name }}
-        </button>
+      <div v-if="tournaments?.length" class="tournament-switcher">
+        <span class="tournament-switcher-label">Torneo:</span>
+        <div class="pills">
+          <button
+            v-for="t in tournaments"
+            :key="t.id"
+            class="pill"
+            :class="{ active: t.id === selectedTournamentId }"
+            @click="selectedTournamentId = t.id"
+          >
+            {{ t.name }}
+          </button>
+        </div>
       </div>
+      <p v-else class="muted">Esta liga todavía no tiene torneos en juego.</p>
 
       <section id="tabla" class="section">
         <div class="page-title">
           <div>
             <h2>Tabla de posiciones</h2>
-            <p class="muted">{{ selectedTournament?.name }}</p>
+            <p class="muted">{{ selectedTournament?.name ?? 'Sin torneo seleccionado' }}</p>
           </div>
         </div>
         <div class="grid">
