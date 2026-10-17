@@ -110,8 +110,11 @@ begin
     ('1953/54', 'Club R.I. 27 Yapeyú'),
     ('1950/52', 'Club Social y Deportivo Barraca');
 
+  -- start_date se deriva del primer año de la etiqueta (ej. '1992/93' -> 1992-01-01) sólo
+  -- para poder ordenar la historia cronológicamente; no implica que se conozca la fecha real.
   insert into public.tournaments (league_id, name, start_date, end_date, status, champion_team_id)
-  select v_league_id, 'Temporada ' || c.year_label, null, null, 'finished',
+  select v_league_id, 'Temporada ' || c.year_label,
+    to_date(left(c.year_label, 4), 'YYYY'), null, 'finished',
     case c.club_name
       when 'Club Social Cultural y Deportivo Puente Seco' then (select id from public.teams where league_id = v_league_id and name = 'Puente Seco')
       when 'Club Atlético Sporting Panificación' then (select id from public.teams where league_id = v_league_id and name = 'Panificación')
