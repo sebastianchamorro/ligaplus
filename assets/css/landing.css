@@ -1,0 +1,622 @@
+/* ---------------------------------------------------------------- */
+/* Landing page — sections specific to pages/index.vue               */
+/* Extends tokens/components from main.css + extra.css, doesn't      */
+/* introduce a new palette or type system.                           */
+/* ---------------------------------------------------------------- */
+
+/* El topbar es `display:flex`; en Chrome, un flex item con `letter-spacing`
+   calcula mal su ancho de "shrink" dinámico y no hace wrap (el texto largo
+   desborda el viewport en vez de partir en líneas) — un max-width en %
+   tampoco alcanza porque dispara el mismo cálculo. Un max-width en px fijo
+   evita depender de ese cálculo y arregla el wrap; sólo hace falta en mobile,
+   en desktop el texto ya entra en una sola línea sin necesitar achicarse. */
+.lp-topbar-tag {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .lp-topbar-tag {
+    max-width: 230px;
+  }
+}
+
+.lp-nav-ctas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.lp-nav-ctas .btn,
+.lp-nav-ctas .btn.secondary {
+  padding: 9px 16px;
+  font-size: 12px;
+}
+
+/* -------------------- Hero -------------------- */
+.lp-hero h1 {
+  max-width: 760px;
+}
+
+.lp-hero p {
+  max-width: 540px;
+}
+
+.lp-hero-ctas {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  position: relative;
+  z-index: 1;
+  animation: rise 0.6s 0.16s both;
+}
+
+.lp-hero-ctas .btn {
+  margin-top: 0;
+}
+
+/* -------------------- Section scaffolding -------------------- */
+.lp-section {
+  margin-top: 74px;
+}
+
+.lp-section-head {
+  max-width: 620px;
+  margin: 0 0 34px;
+}
+
+.lp-section-head.center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  max-width: 560px;
+}
+
+.lp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--green-bright);
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.lp-section-head h2 {
+  font-size: clamp(28px, 4.2vw, 40px);
+  line-height: 1.04;
+}
+
+.lp-section-head p {
+  color: var(--muted);
+  font-size: 15px;
+  margin-top: 10px;
+}
+
+/* -------------------- Antes / Después -------------------- */
+.lp-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  align-items: stretch;
+}
+
+.lp-compare-card {
+  border-radius: var(--radius-lg);
+  padding: 26px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lp-compare-card .lp-compare-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.lp-compare-card.before {
+  background: var(--paper-tint);
+  border: 1.5px dashed var(--line);
+}
+
+.lp-compare-card.before .lp-compare-label {
+  color: var(--muted);
+}
+
+.lp-bubble {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 13px 15px;
+  font-size: 13.5px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  box-shadow: var(--shadow-sm);
+}
+
+.lp-bubble:nth-child(odd) {
+  transform: rotate(-0.6deg);
+}
+
+.lp-bubble:nth-child(even) {
+  transform: rotate(0.5deg);
+}
+
+.lp-bubble .icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-tint);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.lp-bubble em {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.lp-compare-card.before .lp-footnote {
+  margin-top: auto;
+  padding-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.lp-compare-card.after {
+  background: #fff;
+  border: 1.5px solid var(--lime);
+  box-shadow: var(--shadow-md);
+}
+
+.lp-compare-card.after .lp-compare-label {
+  color: var(--green);
+}
+
+.lp-mini-table {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.lp-mini-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.lp-mini-table th,
+.lp-mini-table td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.lp-mini-table th {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  background: var(--paper-tint);
+  font-weight: 700;
+}
+
+.lp-mini-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.lp-mini-table td:last-child {
+  font-weight: 800;
+  color: var(--green);
+}
+
+.lp-compare-card.after .lp-footnote {
+  margin-top: auto;
+  padding-top: 8px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+/* -------------------- Feature grid -------------------- */
+.lp-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.lp-feature-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+}
+
+.lp-feature-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--lime);
+}
+
+.lp-feature-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--paper-tint);
+  color: var(--green);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 21px;
+  margin-bottom: 14px;
+}
+
+.lp-feature-card h3 {
+  font-size: 19px;
+  margin-bottom: 7px;
+}
+
+.lp-feature-card p {
+  color: var(--muted);
+  font-size: 13.5px;
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* -------------------- Steps -------------------- */
+.lp-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  counter-reset: lp-step;
+  position: relative;
+}
+
+.lp-steps::before {
+  content: '';
+  position: absolute;
+  top: 21px;
+  left: 42px;
+  right: 42px;
+  height: 2px;
+  background: repeating-linear-gradient(to right, var(--line) 0, var(--line) 8px, transparent 8px, transparent 16px);
+  z-index: 0;
+}
+
+.lp-step {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lp-step-num {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.lp-step h3 {
+  font-size: 17px;
+  margin: 0;
+}
+
+.lp-step p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* -------------------- Liga Libreña showcase -------------------- */
+.lp-showcase {
+  background: linear-gradient(160deg, var(--ink) 0%, var(--green-deep) 55%, var(--green) 100%);
+  border-radius: var(--radius-lg);
+  color: #fff;
+  padding: 40px 34px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.lp-showcase::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.035) 0,
+    rgba(255, 255, 255, 0.035) 2px,
+    transparent 2px,
+    transparent 34px
+  );
+  pointer-events: none;
+}
+
+.lp-showcase-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.lp-showcase-crest {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--lime);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.lp-showcase-crest img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 7px;
+}
+
+.lp-showcase-heading {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.lp-showcase h2 {
+  color: #fff;
+  font-size: clamp(26px, 3.6vw, 36px);
+  line-height: 1.02;
+}
+
+.lp-showcase-sub {
+  color: #cfe4d8;
+  font-size: 14px;
+  margin-top: 6px;
+  max-width: 460px;
+}
+
+.lp-showcase .stat-strip {
+  margin-top: 30px;
+  padding-top: 24px;
+}
+
+.lp-showcase-body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 28px;
+}
+
+.lp-showcase-tournaments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lp-showcase-tournament {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lp-showcase-panel {
+  background: #fff;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  color: var(--ink);
+}
+
+.lp-showcase-panel .panel-head {
+  padding: 13px 16px;
+}
+
+.lp-showcase-panel .panel-head h2 {
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.lp-showcase-crests {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+  position: relative;
+  z-index: 1;
+  flex-wrap: wrap;
+}
+
+.lp-showcase-crests .crest {
+  width: 42px;
+  height: 42px;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.lp-showcase-crests .crest img {
+  padding: 6px;
+}
+
+.lp-showcase-cta {
+  position: relative;
+  z-index: 1;
+  margin-top: 28px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.lp-showcase-cta .muted {
+  color: #bcd2c4;
+}
+
+/* -------------------- Final CTA -------------------- */
+.lp-final {
+  background: var(--ink);
+  border-radius: var(--radius-lg);
+  padding: 52px 34px;
+  text-align: center;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-final::after {
+  content: '';
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(90, 212, 143, 0.25), transparent 70%);
+  bottom: -220px;
+  left: -140px;
+  pointer-events: none;
+}
+
+.lp-final h2 {
+  color: #fff;
+  font-size: clamp(28px, 5vw, 44px);
+  max-width: 600px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.lp-final p {
+  color: #bcd2c4;
+  font-size: 15px;
+  max-width: 480px;
+  margin: 14px auto 0;
+  position: relative;
+  z-index: 1;
+  overflow-wrap: anywhere;
+}
+
+.lp-final-ctas {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 26px;
+  position: relative;
+  z-index: 1;
+}
+
+/* -------------------- Footer -------------------- */
+.lp-footer {
+  margin-top: 70px;
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.lp-footer .brand {
+  font-size: 15px;
+}
+
+.lp-footer .brand-mark {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
+/* -------------------- Responsive -------------------- */
+@media (max-width: 860px) {
+  .lp-compare,
+  .lp-showcase-body {
+    grid-template-columns: 1fr;
+  }
+
+  .lp-feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .lp-steps {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 28px;
+  }
+
+  .lp-steps::before {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .lp-section {
+    margin-top: 54px;
+  }
+
+  .lp-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lp-steps {
+    grid-template-columns: 1fr;
+  }
+
+  /* En vez de dejar dos botones vacíos (sin ícono) en la nav, los escondemos:
+     el hero ya tiene las mismas dos acciones como CTAs grandes. */
+  .lp-nav-ctas {
+    display: none;
+  }
+
+  .lp-showcase {
+    padding: 28px 20px;
+  }
+
+  .lp-final {
+    padding: 38px 20px;
+  }
+
+  .lp-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
