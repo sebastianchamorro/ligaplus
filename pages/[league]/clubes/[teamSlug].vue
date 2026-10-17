@@ -11,6 +11,8 @@ if (!club.value) throw createError({ statusCode: 404, statusMessage: 'Club no en
 
 const { data: trophies } = await useTeamTrophies(club.value.id)
 const { data: currentStandings } = await useTeamCurrentStandings(league.value.id, club.value.id)
+const { data: players } = await useTeamPlayers(club.value.id)
+const { data: staff } = await useTeamStaff(club.value.id)
 
 const brokenLogo = ref(false)
 onMounted(() => {
@@ -104,6 +106,32 @@ onMounted(() => {
             <p class="muted">{{ club?.name }} no participa de ningún torneo en juego actualmente.</p>
           </div>
         </section>
+      </section>
+
+      <section class="section">
+        <div class="page-title"><div><h2>Plantel</h2><p class="muted">Jugadores y cuerpo técnico</p></div></div>
+        <section v-if="players?.length || staff?.length" class="grid">
+          <div class="panel">
+            <div class="panel-head"><h2>Jugadores</h2><span class="muted">{{ players?.length ?? 0 }}</span></div>
+            <div class="panel-body list">
+              <div v-for="p in players" :key="p.id" class="item">
+                <div style="display: flex; align-items: center; gap: 12px">
+                  <div class="crest" style="width: 52px; height: 64px; border-radius: 10px; margin: 0; flex-shrink: 0"><img v-if="p.photo_url" :src="p.photo_url" :alt="p.full_name" style="padding: 0; object-fit: cover" /><span v-else class="fallback" style="font-size: 18px">{{ p.full_name.slice(0, 2).toUpperCase() }}</span></div>
+                  <span><b>{{ p.shirt_number ?? '-' }} · {{ p.full_name }}</b><small v-if="p.position">{{ p.position }}</small></span>
+                </div>
+              </div>
+              <p v-if="!players?.length" class="muted">Todavía no se cargaron jugadores.</p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Cuerpo técnico</h2><span class="muted">{{ staff?.length ?? 0 }}</span></div>
+            <div class="panel-body list">
+              <div v-for="s in staff" :key="s.id" class="item"><span><b>{{ s.full_name }}</b><small>{{ s.role }}</small></span></div>
+              <p v-if="!staff?.length" class="muted">Todavía no se cargó el cuerpo técnico.</p>
+            </div>
+          </div>
+        </section>
+        <section v-else class="panel"><div class="panel-body"><p class="muted">Todavía no se cargó el plantel.</p></div></section>
       </section>
 
       <section class="section">
