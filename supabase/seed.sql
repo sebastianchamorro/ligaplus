@@ -16,29 +16,29 @@ declare
 begin
   select id into v_league_id from public.leagues where slug = 'liga-librena';
 
-  insert into public.teams (league_id, name, short_name, logo_url, status) values
-    (v_league_id, 'Mitre', 'Mitre', 'liga mitre.png', 'active'),
-    (v_league_id, 'Ferro/Pumitas', 'Ferro/Pumitas', 'liga ferro.png', 'active'),
-    (v_league_id, 'Rivera', 'Rivera', 'liga rivera.png', 'active'),
-    (v_league_id, 'Madariaga', 'Madariaga', 'liga madariaga.png', 'active'),
-    (v_league_id, 'Comunicaciones', 'Comunicaciones', 'liga comu.png', 'active'),
-    (v_league_id, 'Guaraní', 'Guaraní', 'liga guarani.png', 'active'),
-    (v_league_id, 'Panificación', 'Panificación', 'liga pani.png', 'active'),
-    (v_league_id, 'Barraca', 'Barraca', 'liga barraca.png', 'active'),
-    (v_league_id, 'Güemes', 'Güemes', 'liga guemes.png', 'active'),
-    (v_league_id, 'Los Catangos', 'Los Catangos', null, 'active'),
-    (v_league_id, 'Marítimos', 'Marítimos', 'Maritimo FC logo.png', 'active'),
-    (v_league_id, 'Puente Seco', 'Puente Seco', 'liga puente seco.png', 'active'),
-    (v_league_id, 'R.I. 27 Yapeyú', 'R.I. 27 Yapeyú', null, 'historic'),
-    (v_league_id, 'Club Deportivo El Fortín', 'El Fortín', null, 'historic'),
-    (v_league_id, 'Capitán Freyche', 'Capitán Freyche', null, 'historic'),
-    (v_league_id, 'Banco Provincia', 'Banco Provincia', null, 'historic')
+  insert into public.teams (league_id, name, short_name, logo_url, status, slug) values
+    (v_league_id, 'Mitre', 'Mitre', 'liga mitre.png', 'active', 'mitre'),
+    (v_league_id, 'Ferro/Pumitas', 'Ferro/Pumitas', 'liga ferro.png', 'active', 'ferro-pumitas'),
+    (v_league_id, 'Rivera', 'Rivera', 'liga rivera.png', 'active', 'rivera'),
+    (v_league_id, 'Madariaga', 'Madariaga', 'liga madariaga.png', 'active', 'madariaga'),
+    (v_league_id, 'Comunicaciones', 'Comunicaciones', 'liga comu.png', 'active', 'comunicaciones'),
+    (v_league_id, 'Guaraní', 'Guaraní', 'liga guarani.png', 'active', 'guarani'),
+    (v_league_id, 'Panificación', 'Panificación', 'liga pani.png', 'active', 'panificacion'),
+    (v_league_id, 'Barraca', 'Barraca', 'liga barraca.png', 'active', 'barraca'),
+    (v_league_id, 'Güemes', 'Güemes', 'liga guemes.png', 'active', 'guemes'),
+    (v_league_id, 'Los Catangos', 'Los Catangos', null, 'active', 'los-catangos'),
+    (v_league_id, 'Marítimos', 'Marítimos', 'Maritimo FC logo.png', 'active', 'maritimos'),
+    (v_league_id, 'Puente Seco', 'Puente Seco', 'liga puente seco.png', 'active', 'puente-seco'),
+    (v_league_id, 'R.I. 27 Yapeyú', 'R.I. 27 Yapeyú', null, 'historic', 'ri-27-yapeyu'),
+    (v_league_id, 'Club Deportivo El Fortín', 'El Fortín', null, 'historic', 'club-deportivo-el-fortin'),
+    (v_league_id, 'Capitán Freyche', 'Capitán Freyche', null, 'historic', 'capitan-freyche'),
+    (v_league_id, 'Banco Provincia', 'Banco Provincia', null, 'historic', 'banco-provincia')
   on conflict (league_id, name) do nothing;
 
   -- Historical names are matched to the existing short club where the
   -- identity is unambiguous; otherwise a distinct historic team is created.
-  insert into public.teams (league_id, name, short_name, status)
-  select v_league_id, 'Club Atlético Victoria', 'Victoria', 'historic'
+  insert into public.teams (league_id, name, short_name, status, slug)
+  select v_league_id, 'Club Atlético Victoria', 'Victoria', 'historic', 'club-atletico-victoria'
   where not exists (
     select 1 from public.teams t where t.league_id = v_league_id and t.name = 'Club Atlético Victoria'
   );

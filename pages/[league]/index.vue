@@ -218,7 +218,7 @@ function formatKickoff(iso: string | null) {
         </div>
 
         <div class="cards">
-          <div v-for="club in activeTeams" :key="club.id" class="card">
+          <NuxtLink v-for="club in activeTeams" :key="club.id" :to="`/${leagueSlug}/clubes/${club.slug}`" class="card">
             <div class="crest">
               <img
                 v-if="club.logo_url && !brokenLogos[club.id]"
@@ -231,13 +231,13 @@ function formatKickoff(iso: string | null) {
             </div>
             <h3>{{ club.name }}</h3>
             <p>Actual</p>
-          </div>
+          </NuxtLink>
         </div>
 
         <template v-if="historicTeams.length">
           <div class="subsection-label">Clubes históricos</div>
           <div class="cards">
-            <div v-for="club in historicTeams" :key="club.id" class="card historic-card">
+            <NuxtLink v-for="club in historicTeams" :key="club.id" :to="`/${leagueSlug}/clubes/${club.slug}`" class="card historic-card">
               <div class="crest">
                 <img
                   v-if="club.logo_url && !brokenLogos[club.id]"
@@ -250,7 +250,7 @@ function formatKickoff(iso: string | null) {
               </div>
               <h3>{{ club.name }}</h3>
               <p>No existe actualmente</p>
-            </div>
+            </NuxtLink>
           </div>
         </template>
       </section>

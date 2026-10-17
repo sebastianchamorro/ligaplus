@@ -12,6 +12,20 @@ export type Team = {
   short_name: string | null
   logo_url: string | null
   status: 'active' | 'historic'
+  slug?: string
+  history?: string | null
+}
+
+export type TeamTrophy = {
+  tournament_id: string
+  name: string
+  start_date: string | null
+}
+
+export type TeamTournamentStanding = StandingsRow & {
+  tournament_id: string
+  tournament_name: string
+  position: number
 }
 
 export type Tournament = {
@@ -108,12 +122,74 @@ export function useLeagueTeams(leagueId: string) {
   return useAsyncData<Team[]>(`teams:${leagueId}`, async () => {
     const { data, error } = await supabase
       .from('teams')
-      .select('id, name, short_name, logo_url, status')
+      .select('id, name, short_name, logo_url, status, slug, history')
       .eq('league_id', leagueId)
       .order('status')
       .order('name')
     if (error) throw error
     return data ?? []
+  })
+}
+
+export function useTeamBySlug(leagueId: string, slug: string) {
+  const supabase = useSupabaseClient()
+  return useAsyncData<Team | null>(`team:${leagueId}:${slug}`, async () => {
+    const { data, error } = await supabase
+      .from('teams')
+      .select('id, name, short_name, logo_url, status, slug, history')
+      .eq('league_id', leagueId)
+      .eq('slug', slug)
+      .maybeSingle()
+    if (error) throw error
+    return data
+  })
+}
+
+// Palmarés: todos los torneos finalizados que ganó ESTE equipo (no toda la liga).
+export function useTeamTrophies(teamId: string) {
+  const supabase = useSupabaseClient()
+  return useAsyncData<TeamTrophy[]>(`trophies:${teamId}`, async () => {
+    const { data, error } = await supabase
+      .from('tournaments')
+      .select('id, name, start_date')
+      .eq('champion_team_id', teamId)
+      .order('start_date', { ascending: false })
+    if (error) throw error
+    return (data ?? []).map((t) => ({ tournament_id: t.id, name: t.name, start_date: t.start_date }))
+  })
+}
+
+// Desempeño en los torneos EN JUEGO de los que participa este equipo (puede ser más de uno).
+export function useTeamCurrentStandings(leagueId: string, teamId: string) {
+  const supabase = useSupabaseClient()
+  return useAsyncData<TeamTournamentStanding[]>(`team-standings:${teamId}`, async () => {
+    const { data: tIds, error: tError } = await supabase
+      .from('tournament_teams')
+      .select('tournament_id, tournaments!inner(id, name, league_id, status)')
+      .eq('team_id', teamId)
+      .eq('tournaments.league_id', leagueId)
+      .eq('tournaments.status', 'in_progress')
+    if (tError) throw tError
+
+    const results: TeamTournamentStanding[] = []
+    for (const row of tIds ?? []) {
+      const tournament = (row as any).tournaments
+      const { data: standings, error } = await supabase.rpc('standings', {
+        p_tournament_id: tournament.id
+      })
+      if (error) throw error
+      const rows = (standings as StandingsRow[]) ?? []
+      const position = rows.findIndex((s) => s.team_id === teamId)
+      if (position !== -1) {
+        results.push({
+          ...rows[position],
+          tournament_id: tournament.id,
+          tournament_name: tournament.name,
+          position: position + 1
+        })
+      }
+    }
+    return results
   })
 }
 

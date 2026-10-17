@@ -37,6 +37,32 @@ async function uploadLogo(e: Event) {
   }
 }
 
+const historyDraft = ref('')
+watch(
+  selectedTeam,
+  (t) => {
+    historyDraft.value = t?.history ?? ''
+  },
+  { immediate: true }
+)
+const savingHistory = ref(false)
+async function saveHistory() {
+  if (!selectedTeamId.value) return
+  savingHistory.value = true
+  try {
+    const { error } = await supabase
+      .from('teams')
+      .update({ history: historyDraft.value || null })
+      .eq('id', selectedTeamId.value)
+    if (error) throw error
+    await refreshTeams()
+  } catch (err: any) {
+    alert(err?.message || 'Error al guardar la historia')
+  } finally {
+    savingHistory.value = false
+  }
+}
+
 const { data: players, refresh: refreshPlayers } = await useAsyncData(
   'admin-players',
   async () => {
@@ -171,6 +197,22 @@ async function removeStaff(id: string) {
             </p>
             <a v-if="selectedTeam?.logo_url" :href="selectedTeam.logo_url" target="_blank" class="muted">Ver/descargar escudo actual →</a>
           </div>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-bottom: 20px">
+        <div class="panel-head">
+          <h2>Historia</h2>
+          <span class="muted">Se muestra en la ficha pública del club</span>
+        </div>
+        <div class="panel-body">
+          <textarea
+            v-model="historyDraft"
+            rows="5"
+            placeholder="Fundación, apodos, rivalidades, hechos destacados..."
+            style="width: 100%; font-family: inherit; font-size: 14px; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius-sm, 8px)"
+          ></textarea>
+          <button class="btn" style="margin-top: 10px" :disabled="savingHistory" @click="saveHistory">Guardar historia</button>
         </div>
       </section>
 
