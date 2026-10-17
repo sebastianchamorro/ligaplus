@@ -1,4 +1,9 @@
 export default defineNuxtConfig({
+  hooks: {
+    'build:before': async () => {
+      await import('./scripts/generate-dev-stats.mjs')
+    }
+  },
   devtools: { enabled: true },
   css: ['~/assets/css/main.css', '~/assets/css/extra.css', '~/assets/css/landing.css'],
   app: {

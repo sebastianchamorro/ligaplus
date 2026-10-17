@@ -1,1 +1,31 @@
-{"name":"liga-futbol-app","private":true,"scripts":{"dev":"nuxt dev","build":"nuxt build","generate":"nuxt generate","preview":"nuxt preview","test":"vitest run --fsModuleCachePath .vitest-cache"},"dependencies":{"@nuxt/icon":"^2.5.1","@nuxtjs/supabase":"^2.1.0","@nuxtjs/tailwindcss":"latest","@supabase/supabase-js":"^2.118.0","nuxt":"latest","sharp":"^0.35.5","vue":"latest","vue-router":"latest","web-push":"^3.6.7"},"devDependencies":{"@iconify-json/lucide":"^1.2.145","@iconify-json/mdi":"^1.2.3","dotenv":"^18.0.8","happy-dom":"^21.0.3","vitest":"^5.0.5"}}
+{
+  "name": "liga-futbol-app",
+  "private": true,
+  "scripts": {
+    "dev": "nuxt dev",
+    "predev": "node scripts/generate-dev-stats.mjs",
+    "prebuild": "node scripts/generate-dev-stats.mjs",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "test": "vitest run --fsModuleCachePath .vitest-cache"
+  },
+  "dependencies": {
+    "@nuxt/icon": "^2.5.1",
+    "@nuxtjs/supabase": "^2.1.0",
+    "@nuxtjs/tailwindcss": "latest",
+    "@supabase/supabase-js": "^2.118.0",
+    "nuxt": "latest",
+    "sharp": "^0.35.5",
+    "vue": "latest",
+    "vue-router": "latest",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.145",
+    "@iconify-json/mdi": "^1.2.3",
+    "dotenv": "^18.0.8",
+    "happy-dom": "^21.0.3",
+    "vitest": "^5.0.5"
+  }
+}
