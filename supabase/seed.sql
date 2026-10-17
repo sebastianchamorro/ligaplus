@@ -432,4 +432,78 @@ begin
   );
 end $$;
 
+-- Tercer torneo real y simultáneo de la liga: Quinta División. El usuario aclaró que
+-- quien publica en redes lo etiqueta mal como "Sub 15" - el nombre real es Quinta
+-- División, así que se usa ese acá (no confundir con "Fútbol Infantil · Categoría
+-- 2015", que es un torneo distinto con las mismas 8 entidades-club).
+do $$
+declare
+  v_league_id uuid;
+  v_quinta_id uuid;
+begin
+  select id into v_league_id from public.leagues where slug = 'liga-librena';
+
+  insert into public.tournaments (league_id, name, status)
+  select v_league_id, 'Quinta División 2026', 'in_progress'
+  where not exists (
+    select 1 from public.tournaments t
+    where t.league_id = v_league_id and t.name = 'Quinta División 2026'
+  );
+  select id into v_quinta_id from public.tournaments
+    where league_id = v_league_id and name = 'Quinta División 2026';
+
+  insert into public.tournament_teams (tournament_id, team_id)
+  select v_quinta_id, t.id
+  from public.teams t
+  where t.league_id = v_league_id
+    and t.name in ('Comunicaciones', 'Madariaga', 'Ferro/Pumitas', 'Güemes', 'Mitre', 'Panificación', 'Guaraní', 'Barraca')
+  on conflict do nothing;
+
+  -- Fecha 1 y 2: sin fecha calendario explícita en la fuente. Fecha 3 (19/09) y
+  -- Fecha 4 (26/09) sí la dan y confirman cadencia semanal, así que se infieren
+  -- 05/09 y 12/09 - metadata de orden, no un resultado inventado.
+  insert into public.matches (tournament_id, home_team_id, away_team_id, matchday, status, score_source, home_score, away_score, scheduled_at)
+  select v_quinta_id, h.id, a.id, fixture.matchday, 'finished', 'manual', fixture.home_score, fixture.away_score, fixture.day::timestamptz
+  from (values
+    (1, 'Comunicaciones', 'Madariaga', 2, 1, '2026-09-05'),
+    (1, 'Ferro/Pumitas', 'Güemes', 4, 2, '2026-09-05'),
+    (1, 'Mitre', 'Panificación', 4, 0, '2026-09-05'),
+    (1, 'Guaraní', 'Barraca', 2, 0, '2026-09-05'),
+    (2, 'Ferro/Pumitas', 'Comunicaciones', 5, 0, '2026-09-12'),
+    (2, 'Madariaga', 'Barraca', 1, 1, '2026-09-12'),
+    (2, 'Guaraní', 'Panificación', 5, 0, '2026-09-12'),
+    (2, 'Mitre', 'Güemes', 1, 0, '2026-09-12'),
+    (3, 'Güemes', 'Panificación', 3, 1, '2026-09-19'),
+    (3, 'Guaraní', 'Madariaga', 4, 1, '2026-09-19'),
+    (3, 'Ferro/Pumitas', 'Barraca', 1, 0, '2026-09-19'),
+    (3, 'Mitre', 'Comunicaciones', 0, 0, '2026-09-19')
+  ) as fixture(matchday, home_name, away_name, home_score, away_score, day)
+  join public.teams h on h.league_id = v_league_id and h.name = fixture.home_name
+  join public.teams a on a.league_id = v_league_id and a.name = fixture.away_name
+  where not exists (
+    select 1 from public.matches m
+    where m.tournament_id = v_quinta_id and m.matchday = fixture.matchday
+      and m.home_team_id = h.id and m.away_team_id = a.id
+  );
+
+  -- Fecha 4 (sábado 26/09): fixture confirmado, resultados todavía no disponibles -
+  -- se carga como "próximo partido", no como finalizado.
+  insert into public.matches (tournament_id, home_team_id, away_team_id, matchday, status, scheduled_at)
+  select v_quinta_id, h.id, a.id, 4, 'scheduled', d.scheduled_at::timestamptz
+  from (values
+    ('09:00', 'Guaraní', 'Ferro/Pumitas'),
+    ('10:15', 'Madariaga', 'Panificación'),
+    ('11:30', 'Barraca', 'Mitre'),
+    ('13:00', 'Comunicaciones', 'Güemes')
+  ) as fixture(game_time, home_name, away_name)
+  join public.teams h on h.league_id = v_league_id and h.name = fixture.home_name
+  join public.teams a on a.league_id = v_league_id and a.name = fixture.away_name
+  cross join lateral (select '2026-09-26 ' || fixture.game_time || ':00-03' as scheduled_at) d
+  where not exists (
+    select 1 from public.matches m
+    where m.tournament_id = v_quinta_id and m.matchday = 4
+      and m.home_team_id = h.id and m.away_team_id = a.id
+  );
+end $$;
+
 commit;
