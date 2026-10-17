@@ -106,6 +106,26 @@ de incrementar el score como side effect.
 `codex/seed-script`) y abre PR. Nada se aplica directo a `main` ni contra el proyecto real de
 Supabase sin revisión.
 
+## Notificaciones push
+
+Web Push estándar (VAPID), sin servicio externo pago - usa la infraestructura de push de
+cada navegador. Par de claves VAPID en `.env` (`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/
+`VAPID_SUBJECT`), generadas una sola vez con `node -e "const w=require('web-push');console.log(w.generateVAPIDKeys())"`.
+
+- `public/sw.js`: service worker que muestra la notificación al recibir un push.
+- `composables/usePushSubscription.ts`: pide permiso, registra el service worker y
+  suscribe al navegador; usado desde el botón "🔔 Avisame..." en `pages/[league]/index.vue`.
+- `server/api/push/subscribe.post.ts` / `unsubscribe.post.ts`: guardan/borran la
+  suscripción en `push_subscriptions` (scopeada por liga, no por equipo - todavía).
+- `server/api/push/send-reminders.post.ts`: busca partidos `scheduled` que arrancan
+  dentro de la próxima hora y no mandaron aviso todavía (`reminder_sent_at is null`),
+  les pega un push a los suscriptos de esa liga, y marca el partido como avisado.
+
+**Importante:** `send-reminders` no se dispara solo - necesita que algo externo lo llame
+periódicamente. Local no hay problema (se puede probar a mano), pero en producción hace
+falta un cron real apuntando a `POST /api/push/send-reminders` cada pocos minutos (Vercel
+Cron Jobs es la opción más simple dado que ya vamos a Vercel).
+
 ## Escudos (logos)
 
 Bucket público `crests` en Supabase Storage. Subida vía `POST /api/upload-logo` (server route,

@@ -11,6 +11,8 @@ const { data: tournaments } = await useActiveTournaments(league.value.id)
 const { data: teams } = await useLeagueTeams(league.value.id)
 const { data: champions } = await useLeagueChampions(league.value.id)
 
+const push = usePushSubscription(league.value.id)
+
 const selectedTournamentId = ref(tournaments.value?.[0]?.id ?? '')
 const selectedTournament = computed(() =>
   tournaments.value?.find((t) => t.id === selectedTournamentId.value) ?? null
@@ -194,6 +196,19 @@ function formatKickoff(iso: string | null) {
             <div class="panel-head">
               <h2>Próximos partidos</h2>
               <span class="muted">{{ selectedTournament?.name }}</span>
+            </div>
+            <div v-if="push.supported.value" class="panel-body" style="padding-top: 0; padding-bottom: 0">
+              <button
+                v-if="!push.subscribed.value"
+                class="btn secondary"
+                :disabled="push.loading.value"
+                @click="push.subscribe"
+              >
+                🔔 Avisame cuando esté por arrancar un partido
+              </button>
+              <button v-else class="btn secondary" @click="push.unsubscribe">
+                🔕 Dejar de avisarme
+              </button>
             </div>
             <div class="panel-body list">
               <div v-for="game in fixture" :key="game.id" class="item">

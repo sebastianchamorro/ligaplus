@@ -12,8 +12,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Sólo server-side (no tiene prefijo "public"): nunca llega al cliente.
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
+    vapidSubject: process.env.VAPID_SUBJECT,
     public: {
-      supabaseUrl: process.env.SUPABASE_URL
+      supabaseUrl: process.env.SUPABASE_URL,
+      vapidPublicKey: process.env.VAPID_PUBLIC_KEY
     }
   }
 })
