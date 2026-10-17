@@ -44,6 +44,8 @@ export type MatchWithTeams = {
   status: 'scheduled' | 'live' | 'finished' | 'postponed'
   home_score: number
   away_score: number
+  score_source: 'events' | 'manual'
+  referee_id: string | null
   home_team: { id: string; name: string }
   away_team: { id: string; name: string }
 }
@@ -52,6 +54,27 @@ export type ChampionEntry = {
   tournament_id: string
   name: string
   champion_team_name: string | null
+}
+
+export type Referee = {
+  id: string
+  league_id: string
+  full_name: string
+}
+
+export type Player = {
+  id: string
+  team_id: string
+  full_name: string
+  shirt_number: number | null
+  position: string | null
+}
+
+export type StaffMember = {
+  id: string
+  team_id: string
+  full_name: string
+  role: string
 }
 
 export function useLeagueBySlug(slug: string) {
@@ -110,6 +133,60 @@ export function useActiveTournaments(leagueId: string) {
   })
 }
 
+// Para el admin: todas las ligas de un torneo sin importar el estado (incluye finalizados),
+// a diferencia de useActiveTournaments que es para la vista pública.
+export function useAllTournaments(leagueId: string) {
+  const supabase = useSupabaseClient()
+  return useAsyncData<Tournament[]>(`tournaments:all:${leagueId}`, async () => {
+    const { data, error } = await supabase
+      .from('tournaments')
+      .select('id, league_id, name, start_date, end_date, status, champion_team_id')
+      .eq('league_id', leagueId)
+      .order('start_date', { ascending: false })
+    if (error) throw error
+    return data ?? []
+  })
+}
+
+export function useLeagueReferees(leagueId: string) {
+  const supabase = useSupabaseClient()
+  return useAsyncData<Referee[]>(`referees:${leagueId}`, async () => {
+    const { data, error } = await supabase
+      .from('referees')
+      .select('id, league_id, full_name')
+      .eq('league_id', leagueId)
+      .order('full_name')
+    if (error) throw error
+    return data ?? []
+  })
+}
+
+export function useTeamPlayers(teamId: string) {
+  const supabase = useSupabaseClient()
+  return useAsyncData<Player[]>(`players:${teamId}`, async () => {
+    const { data, error } = await supabase
+      .from('players')
+      .select('id, team_id, full_name, shirt_number, position')
+      .eq('team_id', teamId)
+      .order('shirt_number')
+    if (error) throw error
+    return data ?? []
+  })
+}
+
+export function useTeamStaff(teamId: string) {
+  const supabase = useSupabaseClient()
+  return useAsyncData<StaffMember[]>(`staff:${teamId}`, async () => {
+    const { data, error } = await supabase
+      .from('team_staff')
+      .select('id, team_id, full_name, role')
+      .eq('team_id', teamId)
+      .order('full_name')
+    if (error) throw error
+    return data ?? []
+  })
+}
+
 export function useTournamentStandings(tournamentId: string) {
   const supabase = useSupabaseClient()
   return useAsyncData<StandingsRow[]>(`standings:${tournamentId}`, async () => {
@@ -125,7 +202,7 @@ export function useTournamentMatches(tournamentId: string, status?: string) {
     let query = supabase
       .from('matches')
       .select(
-        'id, scheduled_at, matchday, status, home_score, away_score,' +
+        'id, scheduled_at, matchday, status, home_score, away_score, score_source, referee_id,' +
           'home_team:teams!matches_home_team_id_fkey(id, name),' +
           'away_team:teams!matches_away_team_id_fkey(id, name)'
       )

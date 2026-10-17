@@ -526,6 +526,39 @@ h1, h2, h3 {
   color: #5c4306;
 }
 
+.badge.upcoming {
+  background: var(--paper-tint);
+  color: var(--muted);
+}
+
+.badge.in_progress {
+  background: rgba(90, 212, 143, 0.2);
+  color: #0c5b39;
+}
+
+.item.selected {
+  border-color: var(--green-bright);
+  box-shadow: 0 0 0 2px var(--lime-soft);
+}
+
+.checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.25; }

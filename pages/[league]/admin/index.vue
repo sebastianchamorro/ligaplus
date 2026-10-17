@@ -4,144 +4,51 @@ const leagueSlug = route.params.league as string
 const supabase = useSupabaseClient()
 
 const { data: league } = await useLeagueBySlug(leagueSlug)
-if (!league.value) {
-  throw createError({ statusCode: 404, statusMessage: 'Liga no encontrada' })
-}
+if (!league.value) throw createError({ statusCode: 404, statusMessage: 'Liga no encontrada' })
 const leagueId = league.value.id
 
-const { data: tournaments } = await useActiveTournaments(leagueId)
+const { data: tournaments, refresh: refreshTournaments } = await useAllTournaments(leagueId)
+const openTournaments = computed(() => (tournaments.value ?? []).filter((t) => t.status !== 'finished'))
+const finishedTournaments = computed(() => (tournaments.value ?? []).filter((t) => t.status === 'finished'))
 const { data: teams } = await useLeagueTeams(leagueId)
 const activeTeams = computed(() => (teams.value ?? []).filter((t) => t.status === 'active'))
 
-const selectedTournamentId = ref(tournaments.value?.[0]?.id ?? '')
-
-const { data: matches, refresh: refreshMatches } = await useAsyncData(
-  'admin-matches',
-  async () => {
-    if (!selectedTournamentId.value) return []
-    const { data, error } = await supabase
-      .from('matches')
-      .select(
-        'id, scheduled_at, matchday, status, home_score, away_score,' +
-          'home_team:teams!matches_home_team_id_fkey(id, name),' +
-          'away_team:teams!matches_away_team_id_fkey(id, name)'
-      )
-      .eq('tournament_id', selectedTournamentId.value)
-      .order('scheduled_at')
-    if (error) throw error
-    return data ?? []
-  },
-  { watch: [selectedTournamentId] }
-)
-
-const selectedMatchId = ref('')
-watch(matches, (list) => {
-  if (list?.length && !list.find((m) => m.id === selectedMatchId.value)) {
-    selectedMatchId.value = list[0].id
-  }
-})
-
-const selectedMatch = computed(() => matches.value?.find((m) => m.id === selectedMatchId.value) ?? null)
-
-const { data: events, refresh: refreshEvents } = await useAsyncData(
-  'admin-events',
-  async () => {
-    if (!selectedMatchId.value) return []
-    const { data, error } = await supabase
-      .from('match_events')
-      .select('id, minute, type, team_id, player_id, player_in_id, player_out_id')
-      .eq('match_id', selectedMatchId.value)
-      .order('minute', { ascending: false })
-    if (error) throw error
-    return data ?? []
-  },
-  { watch: [selectedMatchId] }
-)
-
-const minute = ref(1)
-const type = ref<'goal' | 'own_goal' | 'yellow_card' | 'red_card' | 'substitution'>('goal')
-const eventTeamId = ref('')
-
-async function saveEvent() {
-  if (!selectedMatchId.value || !eventTeamId.value) return
-  const { error } = await supabase.from('match_events').insert({
-    match_id: selectedMatchId.value,
-    minute: minute.value,
-    type: type.value,
-    team_id: eventTeamId.value
-  })
-  if (error) {
-    alert(error.message)
-    return
-  }
-  if (selectedMatch.value?.status !== 'finished') {
-    await supabase.from('matches').update({ status: 'live' }).eq('id', selectedMatchId.value)
-  }
-  await Promise.all([refreshEvents(), refreshMatches()])
-}
-
-async function markFinished() {
-  if (!selectedMatchId.value) return
-  await supabase.from('matches').update({ status: 'finished' }).eq('id', selectedMatchId.value)
-  await refreshMatches()
-}
-
-const newHomeId = ref('')
-const newAwayId = ref('')
-const newMatchday = ref(1)
-const newDate = ref('')
-
-async function createMatch() {
-  if (!newHomeId.value || !newAwayId.value || newHomeId.value === newAwayId.value) return
-  const { error } = await supabase.from('matches').insert({
-    tournament_id: selectedTournamentId.value,
-    home_team_id: newHomeId.value,
-    away_team_id: newAwayId.value,
-    matchday: newMatchday.value,
-    scheduled_at: newDate.value || null,
-    status: 'scheduled'
-  })
-  if (error) {
-    alert(error.message)
-    return
-  }
-  newHomeId.value = ''
-  newAwayId.value = ''
-  await refreshMatches()
-}
-
-// Mapas puramente visuales (no tocan datos ni queries) para mostrar
-// iconos y etiquetas en español en vez de los valores crudos de la base.
-const EVENT_ICONS: Record<string, string> = {
-  goal: '⚽',
-  own_goal: '⚽',
-  yellow_card: '🟨',
-  red_card: '🟥',
-  substitution: '🔁'
-}
-function eventIcon(type: string) {
-  return EVENT_ICONS[type] ?? '•'
-}
-
-const EVENT_LABELS: Record<string, string> = {
-  goal: 'Gol',
-  own_goal: 'Gol en contra',
-  yellow_card: 'Tarjeta amarilla',
-  red_card: 'Tarjeta roja',
-  substitution: 'Cambio'
-}
-function eventLabel(type: string) {
-  return EVENT_LABELS[type] ?? type
-}
-
 const STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Programado',
-  live: 'En vivo',
-  finished: 'Finalizado',
-  postponed: 'Postergado'
+  upcoming: 'Próximo',
+  in_progress: 'En juego',
+  finished: 'Finalizado'
 }
-function statusLabel(status: string) {
-  return STATUS_LABELS[status] ?? status
+
+const newName = ref('')
+const newStatus = ref<'upcoming' | 'in_progress'>('upcoming')
+const newStart = ref('')
+const newEnd = ref('')
+const newTeamIds = ref<string[]>([])
+
+async function createTournament() {
+  if (!newName.value.trim() || !newTeamIds.value.length) return
+  const { data: created, error } = await supabase
+    .from('tournaments')
+    .insert({
+      league_id: leagueId,
+      name: newName.value.trim(),
+      status: newStatus.value,
+      start_date: newStart.value || null,
+      end_date: newEnd.value || null
+    })
+    .select('id')
+    .single()
+  if (error) return alert(error.message)
+
+  const rows = newTeamIds.value.map((team_id) => ({ tournament_id: created.id, team_id }))
+  const { error: teamsError } = await supabase.from('tournament_teams').insert(rows)
+  if (teamsError) return alert(teamsError.message)
+
+  newName.value = ''
+  newStart.value = ''
+  newEnd.value = ''
+  newTeamIds.value = []
+  await refreshTournaments()
 }
 </script>
 
@@ -154,15 +61,13 @@ function statusLabel(status: string) {
     <nav class="nav">
       <div class="brand">
         <span class="brand-mark">⚽</span>
-        <span class="brand-text">
-          {{ league?.name?.toUpperCase() }}
-          <span class="kicker">Admin</span>
-        </span>
+        <span class="brand-text">{{ league?.name?.toUpperCase() }}<span class="kicker">Admin</span></span>
       </div>
       <div class="navlinks-wrap">
         <div class="navlinks">
           <NuxtLink :to="`/${leagueSlug}`">Vista pública</NuxtLink>
-          <NuxtLink class="active" :to="`/${leagueSlug}/admin`">Administrar</NuxtLink>
+          <NuxtLink class="active" :to="`/${leagueSlug}/admin`">Torneos</NuxtLink>
+          <NuxtLink :to="`/${leagueSlug}/admin/equipos`">Equipos</NuxtLink>
         </div>
       </div>
     </nav>
@@ -170,130 +75,87 @@ function statusLabel(status: string) {
     <main class="shell">
       <div class="page-title">
         <div>
-          <h1>Panel de administración</h1>
-          <p class="muted">Cargá resultados y eventos de {{ league?.name }}.</p>
+          <h1>Torneos de {{ league?.name }}</h1>
+          <p class="muted">Una liga puede tener varios torneos a la vez, cada uno con sus propios equipos.</p>
         </div>
         <span class="badge dev">Sin login todavía · Fase 1</span>
-      </div>
-
-      <div class="pills">
-        <button
-          v-for="t in tournaments"
-          :key="t.id"
-          class="pill"
-          :class="{ active: t.id === selectedTournamentId }"
-          @click="selectedTournamentId = t.id"
-        >
-          {{ t.name }}
-        </button>
       </div>
 
       <div class="grid">
         <section class="panel">
           <div class="panel-head">
-            <h2>Cargar evento</h2>
-            <span class="muted">Partido seleccionado</span>
+            <h2>Torneos existentes</h2>
           </div>
-          <div class="panel-body">
-            <div class="field">
-              <label>Partido</label>
-              <select v-model="selectedMatchId">
-                <option v-for="m in matches" :key="m.id" :value="m.id">
-                  {{ m.home_team.name }} vs {{ m.away_team.name }} ({{ statusLabel(m.status) }})
-                </option>
-              </select>
-            </div>
-            <div class="grid grid-2">
-              <div class="field">
-                <label>Minuto</label>
-                <input v-model.number="minute" type="number" />
+          <div class="panel-body list">
+            <NuxtLink
+              v-for="t in openTournaments"
+              :key="t.id"
+              :to="`/${leagueSlug}/admin/torneos/${t.id}`"
+              class="item"
+            >
+              <span><b>{{ t.name }}</b></span>
+              <span class="badge" :class="t.status">{{ STATUS_LABELS[t.status] ?? t.status }}</span>
+            </NuxtLink>
+            <p v-if="!openTournaments.length" class="muted">No hay torneos en juego o próximos.</p>
+
+            <details v-if="finishedTournaments.length" style="margin-top: 8px">
+              <summary class="muted" style="cursor: pointer">
+                Ver {{ finishedTournaments.length }} torneos finalizados (incluye historia)
+              </summary>
+              <div class="list" style="margin-top: 10px">
+                <NuxtLink
+                  v-for="t in finishedTournaments"
+                  :key="t.id"
+                  :to="`/${leagueSlug}/admin/torneos/${t.id}`"
+                  class="item"
+                >
+                  <span><b>{{ t.name }}</b></span>
+                  <span class="badge finished">Finalizado</span>
+                </NuxtLink>
               </div>
-              <div class="field">
-                <label>Equipo</label>
-                <select v-model="eventTeamId">
-                  <option v-if="selectedMatch" :value="selectedMatch.home_team.id">{{ selectedMatch.home_team.name }}</option>
-                  <option v-if="selectedMatch" :value="selectedMatch.away_team.id">{{ selectedMatch.away_team.name }}</option>
-                </select>
-              </div>
-            </div>
-            <div class="field">
-              <label>Tipo de evento</label>
-              <select v-model="type">
-                <option value="goal">⚽ Gol</option>
-                <option value="own_goal">⚽ Gol en contra</option>
-                <option value="yellow_card">🟨 Tarjeta amarilla</option>
-                <option value="red_card">🟥 Tarjeta roja</option>
-                <option value="substitution">🔁 Cambio</option>
-              </select>
-            </div>
-            <div class="actionbar">
-              <button class="btn" @click="saveEvent">Registrar evento</button>
-              <button class="btn secondary" @click="markFinished">Marcar finalizado</button>
-            </div>
+            </details>
           </div>
         </section>
 
         <section class="panel">
           <div class="panel-head">
-            <h2>Crear partido</h2>
-            <span class="muted">{{ tournaments?.find((t) => t.id === selectedTournamentId)?.name }}</span>
+            <h2>Crear torneo</h2>
           </div>
           <div class="panel-body">
             <div class="field">
-              <label>Local</label>
-              <select v-model="newHomeId">
-                <option value="" disabled>Elegí un equipo</option>
-                <option v-for="t in activeTeams" :key="t.id" :value="t.id">{{ t.name }}</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Visitante</label>
-              <select v-model="newAwayId">
-                <option value="" disabled>Elegí un equipo</option>
-                <option v-for="t in activeTeams" :key="t.id" :value="t.id">{{ t.name }}</option>
-              </select>
+              <label>Nombre</label>
+              <input v-model="newName" placeholder="Ej. Copa Verano 2027" />
             </div>
             <div class="grid grid-2">
               <div class="field">
-                <label>Fecha (matchday)</label>
-                <input v-model.number="newMatchday" type="number" />
+                <label>Inicio</label>
+                <input v-model="newStart" type="date" />
               </div>
               <div class="field">
-                <label>Fecha y hora</label>
-                <input v-model="newDate" type="datetime-local" />
+                <label>Fin</label>
+                <input v-model="newEnd" type="date" />
               </div>
             </div>
-            <button class="btn" @click="createMatch">Agregar al fixture</button>
-            <div class="list" style="margin-top: 20px">
-              <div v-for="m in matches" :key="m.id" class="item">
-                <span>
-                  <b>{{ m.home_team.name }} vs {{ m.away_team.name }}</b>
-                  <small>Fecha {{ m.matchday }} · {{ m.home_score }}-{{ m.away_score }}</small>
-                </span>
-                <span class="badge" :class="m.status">{{ statusLabel(m.status) }}</span>
-              </div>
-              <p v-if="!matches?.length" class="muted">Todavía no hay partidos en este torneo.</p>
+            <div class="field">
+              <label>Estado</label>
+              <select v-model="newStatus">
+                <option value="upcoming">Próximo</option>
+                <option value="in_progress">En juego</option>
+              </select>
             </div>
+            <div class="field">
+              <label>Equipos participantes</label>
+              <div class="checklist">
+                <label v-for="t in activeTeams" :key="t.id" class="checklist-item">
+                  <input v-model="newTeamIds" type="checkbox" :value="t.id" />
+                  {{ t.name }}
+                </label>
+              </div>
+            </div>
+            <button class="btn" @click="createTournament">Crear torneo</button>
           </div>
         </section>
       </div>
-
-      <section class="panel" style="margin-top: 20px">
-        <div class="panel-head">
-          <h2>Últimos eventos</h2>
-          <span class="muted">Se reflejan en la vista pública</span>
-        </div>
-        <div class="panel-body list">
-          <div v-for="event in events" :key="event.id" class="item">
-            <span class="event-row">
-              <span class="event-icon">{{ eventIcon(event.type) }}</span>
-              <b>{{ eventLabel(event.type) }}</b>
-            </span>
-            <span class="badge">{{ event.minute }}'</span>
-          </div>
-          <p v-if="!events?.length" class="muted">Sin eventos cargados para este partido.</p>
-        </div>
-      </section>
     </main>
   </div>
 </template>
