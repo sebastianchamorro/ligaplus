@@ -184,6 +184,38 @@ begin
   );
 end $$;
 
+-- Fecha 2 real del Torneo Oficial 2026: sábado 5/9 (3 partidos) y domingo 6/9
+-- (los otros 3), en el orden que relató el usuario. Sólo se conoce el día, no la
+-- hora exacta de cada partido, así que scheduled_at queda en la fecha a medianoche
+-- (no implica que el partido haya arrancado a esa hora).
+do $$
+declare
+  v_league_id uuid;
+  v_tournament_id uuid;
+begin
+  select id into v_league_id from public.leagues where slug = 'liga-librena';
+  select id into v_tournament_id from public.tournaments
+    where league_id = v_league_id and name = 'Torneo Oficial 2026';
+
+  insert into public.matches (tournament_id, home_team_id, away_team_id, matchday, status, score_source, home_score, away_score, scheduled_at)
+  select v_tournament_id, h.id, a.id, 2, 'finished', 'manual', fixture.home_score, fixture.away_score, fixture.day::timestamptz
+  from (values
+    ('Güemes', 'Madariaga', 1, 1, '2026-09-05'),
+    ('Mitre', 'Los Catangos', 5, 0, '2026-09-05'),
+    ('Rivera', 'Marítimos', 2, 0, '2026-09-05'),
+    ('Comunicaciones', 'Puente Seco', 3, 0, '2026-09-06'),
+    ('Panificación', 'Barraca', 2, 1, '2026-09-06'),
+    ('Ferro/Pumitas', 'Guaraní', 1, 0, '2026-09-06')
+  ) as fixture(home_name, away_name, home_score, away_score, day)
+  join public.teams h on h.league_id = v_league_id and h.name = fixture.home_name
+  join public.teams a on a.league_id = v_league_id and a.name = fixture.away_name
+  where not exists (
+    select 1 from public.matches m
+    where m.tournament_id = v_tournament_id and m.matchday = 2
+      and m.home_team_id = h.id and m.away_team_id = a.id
+  );
+end $$;
+
 -- Fecha 6 real del Torneo Oficial 2026 (partidos pendientes, programados para el
 -- sábado 17/10/2026) - datos provistos por el usuario, no inventados.
 do $$
