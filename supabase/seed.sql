@@ -151,4 +151,111 @@ begin
   );
 end $$;
 
+-- Fecha 1 real del Torneo Oficial 2026 (fin de semana 29-30/08/2026) - resultados
+-- finales provistos por el usuario (recap oficial de la L.L.F.). No se conoce el
+-- detalle de goles/eventos, sólo el marcador final, así que se carga en modo
+-- 'manual' (igual que "Cargar sólo el resultado" desde el admin) en vez de 'events'.
+-- No se sabe qué partido fue sábado y cuál domingo, así que scheduled_at queda null.
+do $$
+declare
+  v_league_id uuid;
+  v_tournament_id uuid;
+begin
+  select id into v_league_id from public.leagues where slug = 'liga-librena';
+  select id into v_tournament_id from public.tournaments
+    where league_id = v_league_id and name = 'Torneo Oficial 2026';
+
+  insert into public.matches (tournament_id, home_team_id, away_team_id, matchday, status, score_source, home_score, away_score, venue)
+  select v_tournament_id, h.id, a.id, 1, 'finished', 'manual', fixture.home_score, fixture.away_score, fixture.venue
+  from (values
+    ('Madariaga', 'Guaraní', 1, 1, null),
+    ('Barraca', 'Ferro/Pumitas', 1, 1, null),
+    ('Rivera', 'Puente Seco', 1, 1, null),
+    ('Mitre', 'Marítimos', 8, 0, null),
+    ('Güemes', 'Los Catangos', 1, 1, 'Bonpland'),
+    ('Comunicaciones', 'Panificación', 2, 0, null)
+  ) as fixture(home_name, away_name, home_score, away_score, venue)
+  join public.teams h on h.league_id = v_league_id and h.name = fixture.home_name
+  join public.teams a on a.league_id = v_league_id and a.name = fixture.away_name
+  where not exists (
+    select 1 from public.matches m
+    where m.tournament_id = v_tournament_id and m.matchday = 1
+      and m.home_team_id = h.id and m.away_team_id = a.id
+  );
+end $$;
+
+-- Fecha 6 real del Torneo Oficial 2026 (partidos pendientes, programados para el
+-- sábado 17/10/2026) - datos provistos por el usuario, no inventados.
+do $$
+declare
+  v_league_id uuid;
+  v_tournament_id uuid;
+begin
+  select id into v_league_id from public.leagues where slug = 'liga-librena';
+  select id into v_tournament_id from public.tournaments
+    where league_id = v_league_id and name = 'Torneo Oficial 2026';
+
+  insert into public.matches (tournament_id, home_team_id, away_team_id, scheduled_at, matchday, status)
+  select v_tournament_id, h.id, a.id, d.scheduled_at::timestamptz, 6, 'scheduled'
+  from (values
+    ('12:30', 'Puente Seco', 'Panificación'),
+    ('14:30', 'Los Catangos', 'Guaraní'),
+    ('16:30', 'Rivera', 'Madariaga')
+  ) as fixture(game_time, home_name, away_name)
+  join public.teams h on h.league_id = v_league_id and h.name = fixture.home_name
+  join public.teams a on a.league_id = v_league_id and a.name = fixture.away_name
+  cross join lateral (select '2026-10-17 ' || fixture.game_time || ':00-03' as scheduled_at) d
+  where not exists (
+    select 1 from public.matches m
+    where m.tournament_id = v_tournament_id and m.matchday = 6
+      and m.home_team_id = h.id and m.away_team_id = a.id
+  );
+end $$;
+
+-- Segundo torneo real y simultáneo de la misma liga: Fútbol Infantil, Categoría 2015.
+-- Usa las mismas entidades "club" que la Primera (es el mismo club, otra categoría),
+-- con su propio conjunto de equipos participantes y su propio fixture/numeración de
+-- fecha ("Jornada"), independiente del Torneo Oficial.
+do $$
+declare
+  v_league_id uuid;
+  v_infantil_id uuid;
+begin
+  select id into v_league_id from public.leagues where slug = 'liga-librena';
+
+  insert into public.tournaments (league_id, name, status)
+  select v_league_id, 'Fútbol Infantil · Categoría 2015', 'in_progress'
+  where not exists (
+    select 1 from public.tournaments t
+    where t.league_id = v_league_id and t.name = 'Fútbol Infantil · Categoría 2015'
+  );
+  select id into v_infantil_id from public.tournaments
+    where league_id = v_league_id and name = 'Fútbol Infantil · Categoría 2015';
+
+  insert into public.tournament_teams (tournament_id, team_id)
+  select v_infantil_id, t.id
+  from public.teams t
+  where t.league_id = v_league_id
+    and t.name in ('Rivera', 'Marítimos', 'Guaraní', 'Ferro/Pumitas', 'Comunicaciones', 'Barraca', 'Panificación', 'Madariaga')
+  on conflict do nothing;
+
+  -- Jornada 9 (domingo 27/09/2026) - sólo el fixture, sin resultado conocido todavía.
+  insert into public.matches (tournament_id, home_team_id, away_team_id, scheduled_at, matchday, status)
+  select v_infantil_id, h.id, a.id, d.scheduled_at::timestamptz, 9, 'scheduled'
+  from (values
+    ('14:00', 'Rivera', 'Marítimos'),
+    ('15:00', 'Guaraní', 'Ferro/Pumitas'),
+    ('16:00', 'Comunicaciones', 'Barraca'),
+    ('17:00', 'Panificación', 'Madariaga')
+  ) as fixture(game_time, home_name, away_name)
+  join public.teams h on h.league_id = v_league_id and h.name = fixture.home_name
+  join public.teams a on a.league_id = v_league_id and a.name = fixture.away_name
+  cross join lateral (select '2026-09-27 ' || fixture.game_time || ':00-03' as scheduled_at) d
+  where not exists (
+    select 1 from public.matches m
+    where m.tournament_id = v_infantil_id and m.matchday = 9
+      and m.home_team_id = h.id and m.away_team_id = a.id
+  );
+end $$;
+
 commit;
