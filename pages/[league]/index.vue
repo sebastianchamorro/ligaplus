@@ -42,8 +42,8 @@ const { data: fixture, refresh: refreshFixture } = await useAsyncData(
           'away_team:teams!matches_away_team_id_fkey(id, name)'
       )
       .eq('tournament_id', selectedTournamentId.value)
-      .eq('status', 'scheduled')
-      .order('scheduled_at')
+      .in('status', ['scheduled', 'postponed'])
+      .order('scheduled_at', { nullsFirst: true })
     if (error) throw error
     return data ?? []
   },
@@ -83,7 +83,7 @@ onMounted(() => {
 })
 
 function formatKickoff(iso: string | null) {
-  if (!iso) return ''
+  if (!iso) return 'Fecha a confirmar'
   return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
 }
 </script>
@@ -201,7 +201,7 @@ function formatKickoff(iso: string | null) {
                   <b>{{ game.home_team.name }} vs {{ game.away_team.name }}</b>
                   <small>{{ formatKickoff(game.scheduled_at) }} · Fecha {{ game.matchday }}</small>
                 </span>
-                <span class="badge scheduled">Programado</span>
+                <span class="badge" :class="game.status">{{ game.status === 'postponed' ? 'Postergado' : 'Programado' }}</span>
               </div>
               <p v-if="!fixture?.length" class="muted">No hay partidos programados.</p>
             </div>

@@ -309,8 +309,12 @@ begin
   );
 end $$;
 
--- Fecha 6 real del Torneo Oficial 2026 (partidos pendientes, programados para el
--- sábado 17/10/2026) - datos provistos por el usuario, no inventados.
+-- Fecha 6 del Torneo Oficial 2026. De los 6 partidos de la fecha, los 3 del sábado
+-- 17/10 se suspendieron por lluvia y quedaron sin nueva fecha confirmada todavía
+-- ("serán informados oportunamente") - por eso quedan en 'postponed' con
+-- scheduled_at null, en vez de 'scheduled' con una fecha que ya sabemos que no se
+-- cumplió. El admin/página pública los sigue mostrando como "próximo partido"
+-- pendiente hasta que se reprograme (ver cambio en useTournamentMatches/fixture).
 do $$
 declare
   v_league_id uuid;
@@ -320,21 +324,67 @@ begin
   select id into v_tournament_id from public.tournaments
     where league_id = v_league_id and name = 'Torneo Oficial 2026';
 
-  insert into public.matches (tournament_id, home_team_id, away_team_id, scheduled_at, matchday, status)
-  select v_tournament_id, h.id, a.id, d.scheduled_at::timestamptz, 6, 'scheduled'
+  insert into public.matches (tournament_id, home_team_id, away_team_id, matchday, status)
+  select v_tournament_id, h.id, a.id, 6, 'postponed'
   from (values
-    ('12:30', 'Puente Seco', 'Panificación'),
-    ('14:30', 'Los Catangos', 'Guaraní'),
-    ('16:30', 'Rivera', 'Madariaga')
-  ) as fixture(game_time, home_name, away_name)
+    ('Puente Seco', 'Panificación'),
+    ('Los Catangos', 'Guaraní'),
+    ('Rivera', 'Madariaga')
+  ) as fixture(home_name, away_name)
   join public.teams h on h.league_id = v_league_id and h.name = fixture.home_name
   join public.teams a on a.league_id = v_league_id and a.name = fixture.away_name
-  cross join lateral (select '2026-10-17 ' || fixture.game_time || ':00-03' as scheduled_at) d
   where not exists (
     select 1 from public.matches m
     where m.tournament_id = v_tournament_id and m.matchday = 6
       and m.home_team_id = h.id and m.away_team_id = a.id
   );
+
+  -- Los otros 3 de la fecha 6 sí se jugaron el domingo, con resultado real.
+  insert into public.matches (tournament_id, home_team_id, away_team_id, matchday, status, score_source, home_score, away_score)
+  select v_tournament_id, h.id, a.id, 6, 'finished', 'manual', fixture.home_score, fixture.away_score
+  from (values
+    ('Barraca', 'Güemes', 3, 0),
+    ('Ferro/Pumitas', 'Marítimos', 4, 1),
+    ('Mitre', 'Comunicaciones', 3, 3)
+  ) as fixture(home_name, away_name, home_score, away_score)
+  join public.teams h on h.league_id = v_league_id and h.name = fixture.home_name
+  join public.teams a on a.league_id = v_league_id and a.name = fixture.away_name
+  where not exists (
+    select 1 from public.matches m
+    where m.tournament_id = v_tournament_id and m.matchday = 6
+      and m.home_team_id = h.id and m.away_team_id = a.id
+  );
+end $$;
+
+-- Fecha 7: ya existía como fixture "placeholder" (scheduled) desde el seed original
+-- transcripto del prototipo viejo - ahora se confirma que esos 6 emparejamientos
+-- fueron los reales, así que se actualizan con el resultado real en vez de insertar
+-- partidos nuevos. 3 se jugaron el domingo, los otros 3 (suspendidos el sábado) se
+-- completaron el lunes siguiente.
+do $$
+declare
+  v_tournament_id uuid;
+begin
+  select t.id into v_tournament_id
+  from public.tournaments t join public.leagues l on l.id = t.league_id
+  where l.slug = 'liga-librena' and t.name = 'Torneo Oficial 2026';
+
+  update public.matches m
+  set status = 'finished', score_source = 'manual', home_score = r.home_score, away_score = r.away_score
+  from (values
+    ('Panificación', 'Marítimos', 3, 1),
+    ('Barraca', 'Mitre', 1, 1),
+    ('Madariaga', 'Puente Seco', 1, 0),
+    ('Guaraní', 'Güemes', 3, 0),
+    ('Ferro/Pumitas', 'Los Catangos', 4, 4),
+    ('Comunicaciones', 'Rivera', 1, 2)
+  ) as r(home_name, away_name, home_score, away_score)
+  join public.teams h on h.league_id = (select id from public.leagues where slug = 'liga-librena') and h.name = r.home_name
+  join public.teams a on a.league_id = (select id from public.leagues where slug = 'liga-librena') and a.name = r.away_name
+  where m.tournament_id = v_tournament_id
+    and m.matchday = 7
+    and m.home_team_id = h.id
+    and m.away_team_id = a.id;
 end $$;
 
 -- Segundo torneo real y simultáneo de la misma liga: Fútbol Infantil, Categoría 2015.
