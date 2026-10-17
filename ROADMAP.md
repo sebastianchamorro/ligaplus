@@ -35,14 +35,14 @@ Todas las tablas multi-tenant cuelgan de `league_id` (directo o vía join).
 | `leagues` | Tenant boundary: `slug`, `name`, `is_public`, `owner_profile_id` |
 | `league_memberships` | Rol por liga: `(league_id, profile_id, team_id?, role)` — `league_admin` / `team_admin` / `data_loader` / `viewer` |
 | `app_super_admins` | Operadores de plataforma (lista chica, no es membership por liga) |
-| `seasons` | `league_id`, fechas, `champion_team_id` (histórico) |
+| `tournaments` | `league_id`, fechas, `status` (`upcoming`/`in_progress`/`finished`), `champion_team_id`. Una liga puede tener **varios torneos a la vez** (simultáneos o secuenciales, ej. Torneo Oficial + Copa) |
 | `teams` | `league_id`, `status` (`active`/`historic`) |
-| `season_teams` | Join para altas/bajas por temporada |
+| `tournament_teams` | Equipos que participan de cada torneo — **cada torneo tiene su propio plantel de equipos**, no se comparten automáticamente entre torneos de la misma liga |
 | `players` | Fase 3, no bloquea el MVP |
-| `matches` | `season_id`, equipos, `status`, `home_score`/`away_score` **derivados** |
+| `matches` | `tournament_id`, equipos, `status`, `home_score`/`away_score` **derivados** |
 | `match_events` | `match_id`, `type`, `team_id`, `player_id`, `created_by` (auditoría) |
 
-Standings calculadas vía view/función SQL `standings(season_id)`, no guardadas a mano. Un
+Standings calculadas vía view/función SQL `standings(tournament_id)`, no guardadas a mano. Un
 trigger recalcula el score en `matches` a partir de `match_events` — reemplaza el bug actual
 de incrementar el score como side effect.
 
@@ -91,7 +91,7 @@ de incrementar el score como side effect.
 - SQL de migraciones de Fase 1 (una vez aprobado el modelo de arriba).
 - Script de seed que parsea los arrays actuales de `pages/index.vue` + `dist/history.js` a
   `INSERT`s.
-- Boilerplate de CRUD para tablas simples (`teams`, `seasons`) una vez establecido el patrón
+- Boilerplate de CRUD para tablas simples (`teams`, `tournaments`) una vez establecido el patrón
   de referencia.
 - Setup de tests (Vitest) para el cálculo de standings.
 - YAML de CI (ya scaffoldeado en `.github/workflows/ci.yml`, ajustar si hace falta).

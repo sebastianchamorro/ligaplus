@@ -44,33 +44,33 @@ begin
   );
 end $$;
 
-insert into public.seasons (league_id, name, start_date, end_date, is_current)
-select id, 'Torneo Oficial 2026', null, null, true
+insert into public.tournaments (league_id, name, start_date, end_date, status)
+select id, 'Torneo Oficial 2026', null, null, 'in_progress'
 from public.leagues l
 where l.slug = 'liga-librena'
   and not exists (
-    select 1 from public.seasons s
-    where s.league_id = l.id and s.name = 'Torneo Oficial 2026'
+    select 1 from public.tournaments t
+    where t.league_id = l.id and t.name = 'Torneo Oficial 2026'
   );
 
-insert into public.season_teams (season_id, team_id)
-select s.id, t.id
-from public.seasons s
-join public.leagues l on l.id = s.league_id
-join public.teams t on t.league_id = l.id and t.status = 'active'
-where l.slug = 'liga-librena' and s.name = 'Torneo Oficial 2026'
+insert into public.tournament_teams (tournament_id, team_id)
+select t.id, tm.id
+from public.tournaments t
+join public.leagues l on l.id = t.league_id
+join public.teams tm on tm.league_id = l.id and tm.status = 'active'
+where l.slug = 'liga-librena' and t.name = 'Torneo Oficial 2026'
 on conflict do nothing;
 
 do $$
 declare
   v_league_id uuid;
-  v_season_id uuid;
+  v_tournament_id uuid;
 begin
   select id into v_league_id from public.leagues where slug = 'liga-librena';
-  select id into v_season_id from public.seasons
+  select id into v_tournament_id from public.tournaments
     where league_id = v_league_id and name = 'Torneo Oficial 2026';
 
-  -- One historical season per authoritative entry in dist/history.js.
+  -- One historical (finished) tournament per authoritative entry in dist/history.js.
   create temporary table seed_champions (year_label text, club_name text) on commit drop;
   insert into seed_champions values
     ('2025', 'Mitre'),
@@ -110,8 +110,8 @@ begin
     ('1953/54', 'Club R.I. 27 Yapeyú'),
     ('1950/52', 'Club Social y Deportivo Barraca');
 
-  insert into public.seasons (league_id, name, start_date, end_date, is_current, champion_team_id)
-  select v_league_id, 'Temporada ' || c.year_label, null, null, false,
+  insert into public.tournaments (league_id, name, start_date, end_date, status, champion_team_id)
+  select v_league_id, 'Temporada ' || c.year_label, null, null, 'finished',
     case c.club_name
       when 'Club Social Cultural y Deportivo Puente Seco' then (select id from public.teams where league_id = v_league_id and name = 'Puente Seco')
       when 'Club Atlético Sporting Panificación' then (select id from public.teams where league_id = v_league_id and name = 'Panificación')
@@ -126,10 +126,10 @@ begin
       else (select id from public.teams where league_id = v_league_id and name = c.club_name)
     end
   from seed_champions c
-  where not exists (select 1 from public.seasons s where s.league_id = v_league_id and s.name = 'Temporada ' || c.year_label);
+  where not exists (select 1 from public.tournaments t where t.league_id = v_league_id and t.name = 'Temporada ' || c.year_label);
 
-  insert into public.matches (season_id, home_team_id, away_team_id, scheduled_at, matchday, status)
-  select v_season_id, h.id, a.id, d.scheduled_at::timestamptz, 7, 'scheduled'
+  insert into public.matches (tournament_id, home_team_id, away_team_id, scheduled_at, matchday, status)
+  select v_tournament_id, h.id, a.id, d.scheduled_at::timestamptz, 7, 'scheduled'
   from (values
     ('12:30', 'Panificación', 'Marítimos'),
     ('14:30', 'Barraca', 'Mitre'),
@@ -143,7 +143,7 @@ begin
   cross join lateral (select '2026-10-18 ' || fixture.game_time || ':00-03' as scheduled_at) d
   where not exists (
     select 1 from public.matches m
-    where m.season_id = v_season_id and m.matchday = 7
+    where m.tournament_id = v_tournament_id and m.matchday = 7
       and m.home_team_id = h.id and m.away_team_id = a.id
   );
 end $$;

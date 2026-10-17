@@ -72,24 +72,29 @@ create table public.league_memberships (
   unique (league_id, profile_id, team_id)
 );
 
--- ===== Temporadas =====
+-- ===== Torneos =====
+-- Una liga puede tener varios torneos a la vez (ej. "Torneo Oficial" y "Copa" corriendo en
+-- simultáneo) o en secuencia (Apertura/Clausura). Cada torneo tiene su propio conjunto de
+-- equipos (tournament_teams) y sus propios partidos/standings - no se comparten entre torneos
+-- aunque pertenezcan a la misma liga.
 
-create table public.seasons (
+create table public.tournaments (
   id uuid primary key default gen_random_uuid(),
   league_id uuid not null references public.leagues (id) on delete cascade,
   name text not null,
   start_date date,
   end_date date,
-  is_current boolean not null default false,
+  status text not null default 'upcoming' check (status in ('upcoming', 'in_progress', 'finished')),
   champion_team_id uuid references public.teams (id),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  unique (league_id, name)
 );
 
-create table public.season_teams (
-  season_id uuid not null references public.seasons (id) on delete cascade,
+create table public.tournament_teams (
+  tournament_id uuid not null references public.tournaments (id) on delete cascade,
   team_id uuid not null references public.teams (id) on delete cascade,
-  primary key (season_id, team_id)
+  primary key (tournament_id, team_id)
 );
 
 create table public.players (
@@ -107,7 +112,7 @@ create table public.players (
 
 create table public.matches (
   id uuid primary key default gen_random_uuid(),
-  season_id uuid not null references public.seasons (id) on delete cascade,
+  tournament_id uuid not null references public.tournaments (id) on delete cascade,
   home_team_id uuid not null references public.teams (id),
   away_team_id uuid not null references public.teams (id),
   scheduled_at timestamptz,
@@ -183,7 +188,7 @@ create trigger on_match_event_change
 
 -- ===== Standings =====
 
-create function public.standings(p_season_id uuid)
+create function public.standings(p_tournament_id uuid)
 returns table (
   team_id uuid,
   team_name text,
@@ -199,16 +204,16 @@ returns table (
 language sql
 stable
 as $$
-  with season_matches as (
+  with tournament_matches as (
     select * from public.matches
-    where season_id = p_season_id and status = 'finished'
+    where tournament_id = p_tournament_id and status = 'finished'
   ),
   team_rows as (
     select home_team_id as team_id, home_score as gf, away_score as ga
-    from season_matches
+    from tournament_matches
     union all
     select away_team_id as team_id, away_score as gf, home_score as ga
-    from season_matches
+    from tournament_matches
   )
   select
     t.id as team_id,
@@ -221,10 +226,10 @@ as $$
     coalesce(sum(tr.ga), 0)::int as goals_against,
     coalesce(sum(tr.gf) - sum(tr.ga), 0)::int as goal_difference,
     (count(*) filter (where tr.gf > tr.ga) * 3 + count(*) filter (where tr.gf = tr.ga))::int as points
-  from public.season_teams st
-  join public.teams t on t.id = st.team_id
+  from public.tournament_teams tt
+  join public.teams t on t.id = tt.team_id
   left join team_rows tr on tr.team_id = t.id
-  where st.season_id = p_season_id
+  where tt.tournament_id = p_tournament_id
   group by t.id, t.name
   order by points desc, goal_difference desc, goals_for desc;
 $$;
