@@ -201,7 +201,32 @@ function formatKickoff(iso: string | null) {
                   <b>{{ game.home_team.name }} vs {{ game.away_team.name }}</b>
                   <small>{{ formatKickoff(game.scheduled_at) }} · Fecha {{ game.matchday }}</small>
                 </span>
-                <span class="badge" :class="game.status">{{ game.status === 'postponed' ? 'Postergado' : 'Programado' }}</span>
+                <span style="display: flex; align-items: center; gap: 8px">
+                  <span class="badge" :class="game.status">{{ game.status === 'postponed' ? 'Postergado' : 'Programado' }}</span>
+                  <template v-if="game.scheduled_at">
+                    <a
+                      class="btn secondary"
+                      style="padding: 6px 12px; font-size: 11px"
+                      target="_blank"
+                      :href="googleCalendarUrl({
+                        title: `${game.home_team.name} vs ${game.away_team.name} · ${league?.name}`,
+                        startIso: game.scheduled_at,
+                        location: 'Estadio Agustín Faraldo',
+                        details: `Fecha ${game.matchday} · ${selectedTournament?.name}`
+                      })"
+                    >📅 Google</a>
+                    <button
+                      class="btn secondary"
+                      style="padding: 6px 12px; font-size: 11px"
+                      @click="downloadIcs({
+                        title: `${game.home_team.name} vs ${game.away_team.name} · ${league?.name}`,
+                        startIso: game.scheduled_at,
+                        location: 'Estadio Agustín Faraldo',
+                        details: `Fecha ${game.matchday} · ${selectedTournament?.name}`
+                      }, `${game.home_team.name}-vs-${game.away_team.name}.ics`)"
+                    >⬇️ .ics</button>
+                  </template>
+                </span>
               </div>
               <p v-if="!fixture?.length" class="muted">No hay partidos programados.</p>
             </div>
