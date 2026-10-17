@@ -5,6 +5,9 @@
 .nitro
 .cache
 
+# Generado en build time por scripts/generate-dev-stats.mjs
+server/data/dev-stats.json
+
 # Dependencies
 node_modules
 

@@ -404,6 +404,7 @@ onMounted(() => {
         </div>
         <span>Hecho para ligas amateur que todavía arman la tabla a mano.</span>
         <NuxtLink to="/ligas">Ver todas las ligas →</NuxtLink>
+        <NuxtLink to="/detras-de-escena">Cómo se construyó</NuxtLink>
       </footer>
     </main>
   </div>
