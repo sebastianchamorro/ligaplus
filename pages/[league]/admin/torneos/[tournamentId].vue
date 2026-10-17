@@ -208,7 +208,7 @@ function formatKickoff(iso: string | null) {
     </div>
     <nav class="nav">
       <div class="brand">
-        <span class="brand-mark">⚽</span>
+        <Icon name="mdi:soccer" class="brand-mark" />
         <span class="brand-text">{{ league?.name?.toUpperCase() }}<span class="kicker">Admin</span></span>
       </div>
       <div class="navlinks-wrap">
@@ -333,11 +333,11 @@ function formatKickoff(iso: string | null) {
             <div class="field">
               <label>Tipo de evento</label>
               <select v-model="eventType">
-                <option value="goal">⚽ Gol</option>
-                <option value="own_goal">⚽ Gol en contra</option>
-                <option value="yellow_card">🟨 Tarjeta amarilla</option>
-                <option value="red_card">🟥 Tarjeta roja</option>
-                <option value="substitution">🔁 Cambio</option>
+                <option value="goal">Gol</option>
+                <option value="own_goal">Gol en contra</option>
+                <option value="yellow_card">Tarjeta amarilla</option>
+                <option value="red_card">Tarjeta roja</option>
+                <option value="substitution">Cambio</option>
               </select>
             </div>
             <div class="actionbar">

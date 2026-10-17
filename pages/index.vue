@@ -39,7 +39,7 @@ onMounted(() => {
     </div>
     <nav class="nav">
       <div class="brand">
-        <span class="brand-mark">⚽</span>
+        <Icon name="mdi:soccer" class="brand-mark" />
         <span class="brand-text">LIGA.FUTBOL.APP</span>
       </div>
     </nav>
@@ -77,7 +77,7 @@ onMounted(() => {
                 :data-logo-id="league.id"
                 @error="onLogoError(league.id)"
               />
-              <span v-else class="fallback">⚽</span>
+              <Icon v-else name="mdi:soccer" class="fallback" />
             </div>
             <h3>{{ league.name }}</h3>
             <p>Ver liga</p>

@@ -147,7 +147,7 @@ async function removeStaff(id: string) {
     </div>
     <nav class="nav">
       <div class="brand">
-        <span class="brand-mark">⚽</span>
+        <Icon name="mdi:soccer" class="brand-mark" />
         <span class="brand-text">{{ league?.name?.toUpperCase() }}<span class="kicker">Admin</span></span>
       </div>
       <div class="navlinks-wrap">

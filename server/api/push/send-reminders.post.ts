@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
       minute: '2-digit'
     })
     const payload = JSON.stringify({
-      title: `⚽ ${match.home_team.name} vs ${match.away_team.name}`,
+      title: `${match.home_team.name} vs ${match.away_team.name}`,
       body: `Arranca a las ${kickoff} · ${match.tournament?.name ?? ''}`,
       url: '/'
     })

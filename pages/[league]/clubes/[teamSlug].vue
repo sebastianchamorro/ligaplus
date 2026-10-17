@@ -37,7 +37,7 @@ onMounted(() => {
     </div>
     <nav class="nav">
       <div class="brand">
-        <span class="brand-mark">⚽</span>
+        <Icon name="mdi:soccer" class="brand-mark" />
         <span class="brand-text">{{ league?.name?.toUpperCase() }}</span>
       </div>
       <div class="navlinks-wrap">
@@ -117,7 +117,7 @@ onMounted(() => {
           <div class="champs-grid">
             <div v-for="t in trophies" :key="t.tournament_id" class="champ-row">
               <b>{{ t.name.replace('Temporada ', '') }}</b>
-              <span>🏆</span>
+              <Icon name="lucide:trophy" style="color: var(--gold)" />
             </div>
           </div>
         </section>

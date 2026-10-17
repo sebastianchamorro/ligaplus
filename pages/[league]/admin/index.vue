@@ -81,7 +81,7 @@ async function createTournament() {
     </div>
     <nav class="nav">
       <div class="brand">
-        <span class="brand-mark">⚽</span>
+        <Icon name="mdi:soccer" class="brand-mark" />
         <span class="brand-text">{{ league?.name?.toUpperCase() }}<span class="kicker">Admin</span></span>
       </div>
       <div class="navlinks-wrap">
@@ -109,7 +109,7 @@ async function createTournament() {
         <div class="panel-body" style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap">
           <div class="crest" style="width: 90px; height: 90px; flex-shrink: 0">
             <img v-if="league?.logo_url" :src="league.logo_url" :alt="league.name" />
-            <span v-else class="fallback">⚽</span>
+            <Icon v-else name="mdi:soccer" class="fallback" />
           </div>
           <div class="field" style="flex: 1; min-width: 220px">
             <label>Subir logo nuevo (cualquier formato - se convierte a PNG solo)</label>

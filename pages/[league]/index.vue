@@ -98,7 +98,7 @@ function formatKickoff(iso: string | null) {
     </div>
     <nav class="nav">
       <div class="brand">
-        <span class="brand-mark">⚽</span>
+        <Icon name="mdi:soccer" class="brand-mark" />
         <span class="brand-text">{{ league?.name?.toUpperCase() }}</span>
       </div>
       <div class="navlinks-wrap">
@@ -197,19 +197,21 @@ function formatKickoff(iso: string | null) {
               <h2>Próximos partidos</h2>
               <span class="muted">{{ selectedTournament?.name }}</span>
             </div>
-            <div v-if="push.supported.value" class="panel-body" style="padding-top: 0; padding-bottom: 0">
-              <button
-                v-if="!push.subscribed.value"
-                class="btn secondary"
-                :disabled="push.loading.value"
-                @click="push.subscribe"
-              >
-                🔔 Avisame cuando esté por arrancar un partido
-              </button>
-              <button v-else class="btn secondary" @click="push.unsubscribe">
-                🔕 Dejar de avisarme
-              </button>
-            </div>
+            <ClientOnly>
+              <div v-if="push.supported.value" class="panel-body" style="padding-top: 0; padding-bottom: 0">
+                <button
+                  v-if="!push.subscribed.value"
+                  class="btn secondary"
+                  :disabled="push.loading.value"
+                  @click="push.subscribe"
+                >
+                  <Icon name="lucide:bell" /> Avisame cuando esté por arrancar un partido
+                </button>
+                <button v-else class="btn secondary" @click="push.unsubscribe">
+                  <Icon name="lucide:bell-off" /> Dejar de avisarme
+                </button>
+              </div>
+            </ClientOnly>
             <div class="panel-body list">
               <div v-for="game in fixture" :key="game.id" class="item">
                 <span>
@@ -229,7 +231,7 @@ function formatKickoff(iso: string | null) {
                         location: 'Estadio Agustín Faraldo',
                         details: `Fecha ${game.matchday} · ${selectedTournament?.name}`
                       })"
-                    >📅 Google</a>
+                    ><Icon name="lucide:calendar-plus" /> Google</a>
                     <button
                       class="btn secondary"
                       style="padding: 6px 12px; font-size: 11px"
@@ -239,7 +241,7 @@ function formatKickoff(iso: string | null) {
                         location: 'Estadio Agustín Faraldo',
                         details: `Fecha ${game.matchday} · ${selectedTournament?.name}`
                       }, `${game.home_team.name}-vs-${game.away_team.name}.ics`)"
-                    >⬇️ .ics</button>
+                    ><Icon name="lucide:download" /> .ics</button>
                   </template>
                 </span>
               </div>
