@@ -26,7 +26,8 @@ export function googleCalendarUrl(m: CalendarMatch) {
   return `https://calendar.google.com/calendar/render?${params.toString()}`
 }
 
-function icsContent(m: CalendarMatch) {
+// Exported so the calendar payload can be tested without relying on browser downloads.
+export function icsContent(m: CalendarMatch) {
   const start = new Date(m.startIso)
   const end = new Date(start.getTime() + (m.durationMinutes ?? 90) * 60000)
   return [
