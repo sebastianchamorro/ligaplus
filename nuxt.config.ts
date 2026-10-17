@@ -8,5 +8,12 @@ export default defineNuxtConfig({
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_ANON_KEY,
     redirect: false
+  },
+  runtimeConfig: {
+    // Sólo server-side (no tiene prefijo "public"): nunca llega al cliente.
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    public: {
+      supabaseUrl: process.env.SUPABASE_URL
+    }
   }
 })

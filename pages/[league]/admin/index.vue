@@ -3,9 +3,30 @@ const route = useRoute()
 const leagueSlug = route.params.league as string
 const supabase = useSupabaseClient()
 
-const { data: league } = await useLeagueBySlug(leagueSlug)
+const { data: league, refresh: refreshLeague } = await useLeagueBySlug(leagueSlug)
 if (!league.value) throw createError({ statusCode: 404, statusMessage: 'Liga no encontrada' })
 const leagueId = league.value.id
+
+const uploadingLeagueLogo = ref(false)
+async function uploadLeagueLogo(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  uploadingLeagueLogo.value = true
+  try {
+    const formData = new FormData()
+    formData.append('target', 'league')
+    formData.append('id', leagueId)
+    formData.append('file', file)
+    await $fetch('/api/upload-logo', { method: 'POST', body: formData })
+    await refreshLeague()
+  } catch (err: any) {
+    alert(err?.data?.statusMessage || err?.message || 'Error al subir el logo')
+  } finally {
+    uploadingLeagueLogo.value = false
+    input.value = ''
+  }
+}
 
 const { data: tournaments, refresh: refreshTournaments } = await useAllTournaments(leagueId)
 const openTournaments = computed(() => (tournaments.value ?? []).filter((t) => t.status !== 'finished'))
@@ -80,6 +101,23 @@ async function createTournament() {
         </div>
         <span class="badge dev">Sin login todavía · Fase 1</span>
       </div>
+
+      <section class="panel" style="margin-bottom: 20px">
+        <div class="panel-head">
+          <h2>Logo de la liga</h2>
+        </div>
+        <div class="panel-body" style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap">
+          <div class="crest" style="width: 90px; height: 90px; flex-shrink: 0">
+            <img v-if="league?.logo_url" :src="league.logo_url" :alt="league.name" />
+            <span v-else class="fallback">⚽</span>
+          </div>
+          <div class="field" style="flex: 1; min-width: 220px">
+            <label>Subir logo nuevo (cualquier formato - se convierte a PNG solo)</label>
+            <input type="file" accept="image/*" :disabled="uploadingLeagueLogo" @change="uploadLeagueLogo" />
+            <a v-if="league?.logo_url" :href="league.logo_url" target="_blank" class="muted">Ver/descargar logo actual →</a>
+          </div>
+        </div>
+      </section>
 
       <div class="grid">
         <section class="panel">

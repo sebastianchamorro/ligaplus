@@ -106,6 +106,28 @@ de incrementar el score como side effect.
 `codex/seed-script`) y abre PR. Nada se aplica directo a `main` ni contra el proyecto real de
 Supabase sin revisión.
 
+## Escudos (logos)
+
+Bucket público `crests` en Supabase Storage. Subida vía `POST /api/upload-logo` (server route,
+usa `service_role`, nunca expuesto al cliente): acepta cualquier formato de imagen y la
+normaliza a PNG 512x512 con fondo transparente usando `sharp` antes de guardarla. Disponible
+desde el admin (`/admin` para el logo de la liga, `/admin/equipos` para el escudo de cada club)
+con un link para descargar el escudo actual, editarlo afuera y volver a subirlo.
+
+No hay limpieza con IA (quitar fondo de fotos/capturas de mala calidad) todavía — decisión
+explícita de no sumar un servicio externo pago por ahora. Si en algún momento se quiere sumar
+(OpenAI images, remove.bg, etc.), es un cambio acotado en `server/api/upload-logo.post.ts`.
+
+**Importante:** los bytes de Storage no viven en Postgres, así que `supabase db reset` los
+borra junto con el resto de la base. Después de cada reset hay que volver a correr:
+
+```
+node supabase/seed/upload-crests.mjs
+```
+
+para restaurar los escudos reales de Liga Libreña (Los Catangos no tiene escudo de origen,
+se carga a mano).
+
 ## Próximos pasos (tuyos)
 
 1. Crear proyecto en [Supabase](https://supabase.com) y copiar `SUPABASE_URL` /

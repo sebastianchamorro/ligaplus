@@ -7,11 +7,35 @@ const { data: league } = await useLeagueBySlug(leagueSlug)
 if (!league.value) throw createError({ statusCode: 404, statusMessage: 'Liga no encontrada' })
 const leagueId = league.value.id
 
-const { data: teams } = await useLeagueTeams(leagueId)
+const { data: teams, refresh: refreshTeams } = await useLeagueTeams(leagueId)
 const activeTeams = computed(() => (teams.value ?? []).filter((t) => t.status === 'active'))
 
 const selectedTeamId = ref(activeTeams.value[0]?.id ?? '')
 const selectedTeam = computed(() => teams.value?.find((t) => t.id === selectedTeamId.value) ?? null)
+
+// Subida de escudo: acepta cualquier formato (jpg, captura, foto), el server lo
+// normaliza a PNG. Si el resultado no queda bien (foto de mala calidad, fondo feo),
+// se puede descargar el actual, editarlo afuera y volver a subirlo las veces que haga falta.
+const uploadingLogo = ref(false)
+async function uploadLogo(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || !selectedTeamId.value) return
+  uploadingLogo.value = true
+  try {
+    const formData = new FormData()
+    formData.append('target', 'team')
+    formData.append('id', selectedTeamId.value)
+    formData.append('file', file)
+    await $fetch('/api/upload-logo', { method: 'POST', body: formData })
+    await refreshTeams()
+  } catch (err: any) {
+    alert(err?.data?.statusMessage || err?.message || 'Error al subir el escudo')
+  } finally {
+    uploadingLogo.value = false
+    input.value = ''
+  }
+}
 
 const { data: players, refresh: refreshPlayers } = await useAsyncData(
   'admin-players',
@@ -128,6 +152,27 @@ async function removeStaff(id: string) {
           {{ t.name }}
         </button>
       </div>
+
+      <section class="panel" style="margin-bottom: 20px">
+        <div class="panel-head">
+          <h2>Escudo</h2>
+          <span class="muted">{{ selectedTeam?.name }}</span>
+        </div>
+        <div class="panel-body" style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap">
+          <div class="crest" style="width: 90px; height: 90px; flex-shrink: 0">
+            <img v-if="selectedTeam?.logo_url" :src="selectedTeam.logo_url" :alt="selectedTeam.name" />
+            <span v-else class="fallback">{{ (selectedTeam?.short_name || selectedTeam?.name || '?').slice(0, 2).toUpperCase() }}</span>
+          </div>
+          <div class="field" style="flex: 1; min-width: 220px">
+            <label>Subir escudo nuevo (cualquier formato - se convierte a PNG solo)</label>
+            <input type="file" accept="image/*" :disabled="uploadingLogo" @change="uploadLogo" />
+            <p class="muted" style="margin-top: 6px">
+              Si la foto queda fea (fondo, recorte), descargá la actual, editala vos y subila de nuevo las veces que haga falta.
+            </p>
+            <a v-if="selectedTeam?.logo_url" :href="selectedTeam.logo_url" target="_blank" class="muted">Ver/descargar escudo actual →</a>
+          </div>
+        </div>
+      </section>
 
       <div class="grid">
         <section class="panel">
