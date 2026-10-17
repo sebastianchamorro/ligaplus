@@ -13,12 +13,15 @@ export default defineEventHandler(async (event) => {
   const target = parts.find((p) => p.name === 'target')?.data?.toString('utf-8')
   const id = parts.find((p) => p.name === 'id')?.data?.toString('utf-8')
 
-  if (!filePart || !target || !id || !['team', 'league'].includes(target)) {
+  if (!filePart || !target || !id || !['team', 'league', 'player'].includes(target)) {
     throw createError({ statusCode: 400, statusMessage: 'Faltan datos (file, target, id)' })
   }
 
+  const isPlayer = target === 'player'
   const png = await sharp(filePart.data)
-    .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize(isPlayer ? 400 : 512, isPlayer ? 500 : 512, isPlayer
+      ? { fit: 'cover', position: 'attention' }
+      : { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
     .toBuffer()
 
@@ -38,12 +41,13 @@ export default defineEventHandler(async (event) => {
   // que sin esto el navegador podría seguir mostrando el escudo viejo cacheado.
   const logoUrl = `${publicUrlData.publicUrl}?v=${Date.now()}`
 
-  const table = target === 'team' ? 'teams' : 'leagues'
+  const table = target === 'team' ? 'teams' : target === 'league' ? 'leagues' : 'players'
+  const column = target === 'player' ? 'photo_url' : 'logo_url'
   const { error: updateError } = await supabaseAdmin
     .from(table)
-    .update({ logo_url: logoUrl })
+    .update({ [column]: logoUrl })
     .eq('id', id)
   if (updateError) throw createError({ statusCode: 500, statusMessage: updateError.message })
 
-  return { logo_url: logoUrl }
+  return { [column]: logoUrl }
 })

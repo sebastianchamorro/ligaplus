@@ -69,7 +69,7 @@ const { data: players, refresh: refreshPlayers } = await useAsyncData(
     if (!selectedTeamId.value) return []
     const { data, error } = await supabase
       .from('players')
-      .select('id, team_id, full_name, shirt_number, position')
+      .select('id, team_id, full_name, shirt_number, position, photo_url')
       .eq('team_id', selectedTeamId.value)
       .order('shirt_number')
     if (error) throw error
@@ -96,6 +96,27 @@ const { data: staff, refresh: refreshStaff } = await useAsyncData(
 const newPlayerName = ref('')
 const newPlayerNumber = ref<number | null>(null)
 const newPlayerPosition = ref('')
+const uploadingPlayerId = ref<string | null>(null)
+
+async function uploadPlayerPhoto(playerId: string, e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  uploadingPlayerId.value = playerId
+  try {
+    const formData = new FormData()
+    formData.append('target', 'player')
+    formData.append('id', playerId)
+    formData.append('file', file)
+    await $fetch('/api/upload-logo', { method: 'POST', body: formData })
+    await refreshPlayers()
+  } catch (err: any) {
+    alert(err?.data?.statusMessage || err?.message || 'Error al subir la foto')
+  } finally {
+    uploadingPlayerId.value = null
+    input.value = ''
+  }
+}
 
 async function addPlayer() {
   if (!selectedTeamId.value || !newPlayerName.value.trim()) return
@@ -241,11 +262,23 @@ async function removeStaff(id: string) {
 
             <div class="panel-body list" style="padding: 0; margin-top: 16px">
               <div v-for="p in players" :key="p.id" class="item">
-                <span>
+                <div style="display: flex; align-items: center; gap: 12px; min-width: 0">
+                  <div class="crest" style="width: 52px; height: 64px; border-radius: 10px; margin: 0; flex-shrink: 0">
+                    <img v-if="p.photo_url" :src="p.photo_url" :alt="p.full_name" style="padding: 0; object-fit: cover" />
+                    <span v-else class="fallback" style="font-size: 18px">{{ p.full_name.slice(0, 2).toUpperCase() }}</span>
+                  </div>
+                  <span>
                   <b>{{ p.shirt_number ?? '-' }} · {{ p.full_name }}</b>
                   <small v-if="p.position">{{ p.position }}</small>
-                </span>
-                <button class="btn secondary" @click="removePlayer(p.id)">Quitar</button>
+                  </span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0">
+                  <label class="btn secondary" style="cursor: pointer">
+                    {{ uploadingPlayerId === p.id ? 'Subiendo…' : (p.photo_url ? 'Cambiar foto' : 'Subir foto') }}
+                    <input type="file" accept="image/*" :disabled="uploadingPlayerId === p.id" style="display: none" @change="uploadPlayerPhoto(p.id, $event)" />
+                  </label>
+                  <button class="btn secondary" @click="removePlayer(p.id)">Quitar</button>
+                </div>
               </div>
               <p v-if="!players?.length" class="muted">Sin jugadores cargados.</p>
             </div>

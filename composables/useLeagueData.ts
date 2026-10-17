@@ -82,6 +82,7 @@ export type Player = {
   full_name: string
   shirt_number: number | null
   position: string | null
+  photo_url: string | null
 }
 
 export type StaffMember = {
@@ -242,7 +243,7 @@ export function useTeamPlayers(teamId: string) {
   return useAsyncData<Player[]>(`players:${teamId}`, async () => {
     const { data, error } = await supabase
       .from('players')
-      .select('id, team_id, full_name, shirt_number, position')
+      .select('id, team_id, full_name, shirt_number, position, photo_url')
       .eq('team_id', teamId)
       .order('shirt_number')
     if (error) throw error
