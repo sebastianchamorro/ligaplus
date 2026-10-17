@@ -249,6 +249,37 @@ begin
   );
 end $$;
 
+-- Fecha 4 real del Torneo Oficial 2026. El usuario no separó los partidos por
+-- sábado/domingo esta vez (sólo "este fin de semana"), así que scheduled_at queda
+-- null en vez de asignar un día arbitrario.
+do $$
+declare
+  v_league_id uuid;
+  v_tournament_id uuid;
+begin
+  select id into v_league_id from public.leagues where slug = 'liga-librena';
+  select id into v_tournament_id from public.tournaments
+    where league_id = v_league_id and name = 'Torneo Oficial 2026';
+
+  insert into public.matches (tournament_id, home_team_id, away_team_id, matchday, status, score_source, home_score, away_score)
+  select v_tournament_id, h.id, a.id, 4, 'finished', 'manual', fixture.home_score, fixture.away_score
+  from (values
+    ('Puente Seco', 'Guaraní', 1, 1),
+    ('Panificación', 'Ferro/Pumitas', 1, 3),
+    ('Güemes', 'Rivera', 0, 1),
+    ('Marítimos', 'Barraca', 2, 0),
+    ('Los Catangos', 'Comunicaciones', 1, 7),
+    ('Mitre', 'Madariaga', 1, 1)
+  ) as fixture(home_name, away_name, home_score, away_score)
+  join public.teams h on h.league_id = v_league_id and h.name = fixture.home_name
+  join public.teams a on a.league_id = v_league_id and a.name = fixture.away_name
+  where not exists (
+    select 1 from public.matches m
+    where m.tournament_id = v_tournament_id and m.matchday = 4
+      and m.home_team_id = h.id and m.away_team_id = a.id
+  );
+end $$;
+
 -- Fecha 6 real del Torneo Oficial 2026 (partidos pendientes, programados para el
 -- sábado 17/10/2026) - datos provistos por el usuario, no inventados.
 do $$
