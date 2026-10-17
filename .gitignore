@@ -17,5 +17,9 @@ node_modules
 .DS_Store
 *.log
 
+# Vitest
+.vitest-cache
+.vite-cache
+
 # Legacy static build (kept for reference during migration, not shipped)
 dist
