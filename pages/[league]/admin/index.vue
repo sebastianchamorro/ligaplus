@@ -109,6 +109,40 @@ async function createMatch() {
   newAwayId.value = ''
   await refreshMatches()
 }
+
+// Mapas puramente visuales (no tocan datos ni queries) para mostrar
+// iconos y etiquetas en español en vez de los valores crudos de la base.
+const EVENT_ICONS: Record<string, string> = {
+  goal: '⚽',
+  own_goal: '⚽',
+  yellow_card: '🟨',
+  red_card: '🟥',
+  substitution: '🔁'
+}
+function eventIcon(type: string) {
+  return EVENT_ICONS[type] ?? '•'
+}
+
+const EVENT_LABELS: Record<string, string> = {
+  goal: 'Gol',
+  own_goal: 'Gol en contra',
+  yellow_card: 'Tarjeta amarilla',
+  red_card: 'Tarjeta roja',
+  substitution: 'Cambio'
+}
+function eventLabel(type: string) {
+  return EVENT_LABELS[type] ?? type
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  scheduled: 'Programado',
+  live: 'En vivo',
+  finished: 'Finalizado',
+  postponed: 'Postergado'
+}
+function statusLabel(status: string) {
+  return STATUS_LABELS[status] ?? status
+}
 </script>
 
 <template>
@@ -118,10 +152,18 @@ async function createMatch() {
       <b>{{ league?.name }}</b>
     </div>
     <nav class="nav">
-      <div class="brand">{{ league?.name?.toUpperCase() }}<br />ADMIN</div>
-      <div class="navlinks">
-        <NuxtLink :to="`/${leagueSlug}`">Vista pública</NuxtLink>
-        <NuxtLink class="active" :to="`/${leagueSlug}/admin`">Administrar</NuxtLink>
+      <div class="brand">
+        <span class="brand-mark">⚽</span>
+        <span class="brand-text">
+          {{ league?.name?.toUpperCase() }}
+          <span class="kicker">Admin</span>
+        </span>
+      </div>
+      <div class="navlinks-wrap">
+        <div class="navlinks">
+          <NuxtLink :to="`/${leagueSlug}`">Vista pública</NuxtLink>
+          <NuxtLink class="active" :to="`/${leagueSlug}/admin`">Administrar</NuxtLink>
+        </div>
       </div>
     </nav>
 
@@ -131,15 +173,15 @@ async function createMatch() {
           <h1>Panel de administración</h1>
           <p class="muted">Cargá resultados y eventos de {{ league?.name }}.</p>
         </div>
-        <span class="badge">Sin login todavía · Fase 1</span>
+        <span class="badge dev">Sin login todavía · Fase 1</span>
       </div>
 
-      <div class="actionbar">
+      <div class="pills">
         <button
           v-for="t in tournaments"
           :key="t.id"
-          class="btn"
-          :class="{ secondary: t.id !== selectedTournamentId }"
+          class="pill"
+          :class="{ active: t.id === selectedTournamentId }"
           @click="selectedTournamentId = t.id"
         >
           {{ t.name }}
@@ -157,11 +199,11 @@ async function createMatch() {
               <label>Partido</label>
               <select v-model="selectedMatchId">
                 <option v-for="m in matches" :key="m.id" :value="m.id">
-                  {{ m.home_team.name }} vs {{ m.away_team.name }} ({{ m.status }})
+                  {{ m.home_team.name }} vs {{ m.away_team.name }} ({{ statusLabel(m.status) }})
                 </option>
               </select>
             </div>
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px">
+            <div class="grid grid-2">
               <div class="field">
                 <label>Minuto</label>
                 <input v-model.number="minute" type="number" />
@@ -184,8 +226,10 @@ async function createMatch() {
                 <option value="substitution">🔁 Cambio</option>
               </select>
             </div>
-            <button class="btn" @click="saveEvent">Registrar evento</button>
-            <button class="btn secondary" style="margin-left: 8px" @click="markFinished">Marcar finalizado</button>
+            <div class="actionbar">
+              <button class="btn" @click="saveEvent">Registrar evento</button>
+              <button class="btn secondary" @click="markFinished">Marcar finalizado</button>
+            </div>
           </div>
         </section>
 
@@ -209,7 +253,7 @@ async function createMatch() {
                 <option v-for="t in activeTeams" :key="t.id" :value="t.id">{{ t.name }}</option>
               </select>
             </div>
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px">
+            <div class="grid grid-2">
               <div class="field">
                 <label>Fecha (matchday)</label>
                 <input v-model.number="newMatchday" type="number" />
@@ -224,10 +268,11 @@ async function createMatch() {
               <div v-for="m in matches" :key="m.id" class="item">
                 <span>
                   <b>{{ m.home_team.name }} vs {{ m.away_team.name }}</b>
-                  <small class="muted">Fecha {{ m.matchday }} · {{ m.home_score }}-{{ m.away_score }}</small>
+                  <small>Fecha {{ m.matchday }} · {{ m.home_score }}-{{ m.away_score }}</small>
                 </span>
-                <span class="badge">{{ m.status }}</span>
+                <span class="badge" :class="m.status">{{ statusLabel(m.status) }}</span>
               </div>
+              <p v-if="!matches?.length" class="muted">Todavía no hay partidos en este torneo.</p>
             </div>
           </div>
         </section>
@@ -238,10 +283,13 @@ async function createMatch() {
           <h2>Últimos eventos</h2>
           <span class="muted">Se reflejan en la vista pública</span>
         </div>
-        <div class="panel-body">
+        <div class="panel-body list">
           <div v-for="event in events" :key="event.id" class="item">
-            <span><b>{{ event.type }}</b></span>
-            <small class="muted">{{ event.minute }}'</small>
+            <span class="event-row">
+              <span class="event-icon">{{ eventIcon(event.type) }}</span>
+              <b>{{ eventLabel(event.type) }}</b>
+            </span>
+            <span class="badge">{{ event.minute }}'</span>
           </div>
           <p v-if="!events?.length" class="muted">Sin eventos cargados para este partido.</p>
         </div>
