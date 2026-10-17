@@ -52,6 +52,10 @@ body {
   font-size: 15px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  /* Red de seguridad: ningún layout de esta app depende de scroll horizontal,
+     así que si algún elemento se desborda por error (texto largo, decoración
+     posicionada, etc.) preferimos recortarlo a mostrar scroll lateral. */
+  overflow-x: hidden;
 }
 
 a {
@@ -75,6 +79,12 @@ h1, h2, h3 {
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--ink);
+  /* Red de seguridad: en ciertas condiciones (ej. el font-swap de la fuente
+     Barlow Condensed cargada por @import) un título centrado con letter-
+     spacing puede quedar con el layout calculado para una métrica de fuente
+     distinta a la final y desbordar su contenedor. overflow-wrap:anywhere
+     no cambia nada en el caso normal; sólo actúa como último recurso. */
+  overflow-wrap: anywhere;
 }
 
 .shell {
