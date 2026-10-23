@@ -226,7 +226,12 @@ function formatKickoff(iso: string | null) {
               </div>
             </ClientOnly>
             <div class="panel-body list">
-              <details v-for="[matchday, games] in fixtureByMatchday" :key="matchday" class="fixture-matchday">
+              <details
+                v-for="([matchday, games], i) in fixtureByMatchday"
+                :key="matchday"
+                class="fixture-matchday"
+                :open="i === 0"
+              >
                 <summary class="subsection-label">
                   <Icon name="lucide:chevron-right" class="fixture-chevron" />
                   <span>{{ matchday ? `Fecha ${matchday}` : 'Fecha a confirmar' }}</span>
