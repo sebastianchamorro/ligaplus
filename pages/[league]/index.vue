@@ -39,18 +39,28 @@ const { data: fixture, refresh: refreshFixture } = await useAsyncData(
     const { data, error } = await supabase
       .from('matches')
       .select(
-        'id, scheduled_at, matchday, status, home_score, away_score,' +
+        'id, scheduled_at, matchday, status, home_score, away_score, venue, score_source,' +
           'home_team:teams!matches_home_team_id_fkey(id, name),' +
           'away_team:teams!matches_away_team_id_fkey(id, name)'
       )
       .eq('tournament_id', selectedTournamentId.value)
-      .in('status', ['scheduled', 'postponed'])
-      .order('scheduled_at', { nullsFirst: true })
+      .order('matchday', { ascending: true, nullsFirst: true })
+      .order('scheduled_at', { ascending: true, nullsFirst: true })
     if (error) throw error
     return data ?? []
   },
   { watch: [selectedTournamentId] }
 )
+
+const fixtureByMatchday = computed(() => {
+  const groups = new Map<number, typeof fixture.value>()
+  for (const match of fixture.value ?? []) {
+    const key = match.matchday ?? 0
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(match)
+  }
+  return [...groups.entries()].sort((a, b) => a[0] - b[0])
+})
 
 const activeTeams = computed(() => (teams.value ?? []).filter((t) => t.status === 'active'))
 const historicTeams = computed(() => (teams.value ?? []).filter((t) => t.status === 'historic'))
@@ -194,7 +204,7 @@ function formatKickoff(iso: string | null) {
 
           <section id="fixture" class="panel">
             <div class="panel-head">
-              <h2>Próximos partidos</h2>
+              <h2>Fixture completo</h2>
               <span class="muted">{{ selectedTournament?.name }}</span>
             </div>
             <ClientOnly>
@@ -213,14 +223,16 @@ function formatKickoff(iso: string | null) {
               </div>
             </ClientOnly>
             <div class="panel-body list">
-              <div v-for="game in fixture" :key="game.id" class="item">
-                <span>
-                  <b>{{ game.home_team.name }} vs {{ game.away_team.name }}</b>
-                  <small>{{ formatKickoff(game.scheduled_at) }} · Fecha {{ game.matchday }}</small>
-                </span>
+              <template v-for="[matchday, games] in fixtureByMatchday" :key="matchday">
+                <div class="subsection-label">{{ matchday ? `Fecha ${matchday}` : 'Fecha a confirmar' }}</div>
+                <div v-for="game in games" :key="game.id" class="item">
+                <NuxtLink :to="`/${leagueSlug}/partidos/${game.id}`" style="flex: 1; min-width: 0">
+                  <b>{{ game.home_team.name }} <template v-if="game.status === 'finished'">{{ game.home_score }} - {{ game.away_score }}</template><template v-else>vs</template> {{ game.away_team.name }}</b>
+                  <small>{{ game.scheduled_at ? formatKickoff(game.scheduled_at) : 'Fecha a confirmar' }}</small>
+                </NuxtLink>
                 <span style="display: flex; align-items: center; gap: 8px">
-                  <span class="badge" :class="game.status">{{ game.status === 'postponed' ? 'Postergado' : 'Programado' }}</span>
-                  <template v-if="game.scheduled_at">
+                  <span class="badge" :class="game.status">{{ game.status === 'postponed' ? 'Postergado' : game.status === 'finished' ? 'Finalizado' : game.status === 'live' ? 'En vivo' : 'Programado' }}</span>
+                  <template v-if="game.scheduled_at && game.status !== 'finished'">
                     <a
                       class="btn secondary"
                       style="padding: 6px 12px; font-size: 11px"
@@ -244,8 +256,9 @@ function formatKickoff(iso: string | null) {
                     ><Icon name="lucide:download" /> .ics</button>
                   </template>
                 </span>
-              </div>
-              <p v-if="!fixture?.length" class="muted">No hay partidos programados.</p>
+                </div>
+              </template>
+              <p v-if="!fixture?.length" class="muted">Todavía no hay partidos en este torneo.</p>
             </div>
           </section>
         </div>
