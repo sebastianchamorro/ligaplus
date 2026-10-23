@@ -97,7 +97,7 @@ const { data: events, refresh: refreshEvents } = await useAsyncData(
     if (!selectedMatchId.value) return []
     const { data, error } = await supabase
       .from('match_events')
-      .select('id, minute, type, team_id')
+      .select('id, minute, type, team_id, player_id, player_in_id, player_out_id, player:players!match_events_player_id_fkey(full_name), player_in:players!match_events_player_in_id_fkey(full_name), player_out:players!match_events_player_out_id_fkey(full_name)')
       .eq('match_id', selectedMatchId.value)
       .order('minute', { ascending: false })
     if (error) throw error
@@ -110,6 +110,16 @@ const { data: events, refresh: refreshEvents } = await useAsyncData(
 const minute = ref(1)
 const eventType = ref<'goal' | 'own_goal' | 'yellow_card' | 'red_card' | 'substitution'>('goal')
 const eventTeamId = ref('')
+const playerId = ref('')
+const playerInId = ref('')
+const playerOutId = ref('')
+const { data: eventPlayers } = useTeamPlayers(eventTeamId)
+const eventPlayerName = (id: string | null) => eventPlayers.value?.find((p) => p.id === id)?.full_name ?? null
+watch([eventTeamId, eventType], () => {
+  playerId.value = ''
+  playerInId.value = ''
+  playerOutId.value = ''
+})
 
 async function saveEvent() {
   if (!selectedMatchId.value || !eventTeamId.value) return
@@ -120,7 +130,10 @@ async function saveEvent() {
     match_id: selectedMatchId.value,
     minute: minute.value,
     type: eventType.value,
-    team_id: eventTeamId.value
+    team_id: eventTeamId.value,
+    player_id: eventType.value === 'substitution' ? null : playerId.value || null,
+    player_in_id: eventType.value === 'substitution' ? playerInId.value || null : null,
+    player_out_id: eventType.value === 'substitution' ? playerOutId.value || null : null
   })
   if (error) return alert(error.message)
   if (selectedMatch.value?.status !== 'finished') {
@@ -340,13 +353,24 @@ function formatKickoff(iso: string | null) {
                 <option value="substitution">Cambio</option>
               </select>
             </div>
+            <div v-if="eventType !== 'substitution'" class="field">
+              <label>Jugador (opcional)</label>
+              <select v-model="playerId" :disabled="!eventPlayers?.length">
+                <option value="">{{ eventPlayers?.length ? 'Sin jugador' : 'No hay jugadores cargados' }}</option>
+                <option v-for="player in eventPlayers" :key="player.id" :value="player.id">{{ player.shirt_number ?? '-' }} · {{ player.full_name }}</option>
+              </select>
+            </div>
+            <div v-else class="grid grid-2">
+              <div class="field"><label>Jugador que entra (opcional)</label><select v-model="playerInId" :disabled="!eventPlayers?.length"><option value="">{{ eventPlayers?.length ? 'Sin jugador' : 'No hay jugadores cargados' }}</option><option v-for="player in eventPlayers" :key="player.id" :value="player.id">{{ player.shirt_number ?? '-' }} · {{ player.full_name }}</option></select></div>
+              <div class="field"><label>Jugador que sale (opcional)</label><select v-model="playerOutId" :disabled="!eventPlayers?.length"><option value="">{{ eventPlayers?.length ? 'Sin jugador' : 'No hay jugadores cargados' }}</option><option v-for="player in eventPlayers" :key="player.id" :value="player.id">{{ player.shirt_number ?? '-' }} · {{ player.full_name }}</option></select></div>
+            </div>
             <div class="actionbar">
               <button class="btn" :disabled="!selectedMatchId" @click="saveEvent">Registrar evento</button>
               <button class="btn secondary" :disabled="!selectedMatchId" @click="markFinished">Marcar finalizado</button>
             </div>
             <div class="panel-body list" style="padding: 0; margin-top: 16px">
               <div v-for="event in events" :key="event.id" class="item">
-                <span>{{ EVENT_LABELS[event.type] ?? event.type }}</span>
+                <span>{{ EVENT_LABELS[event.type] ?? event.type }}<small v-if="event.type === 'substitution'"> · {{ event.player_in?.full_name ?? 'Sin jugador' }} entra / {{ event.player_out?.full_name ?? 'sin jugador' }} sale</small><small v-else-if="event.player_id"> · {{ event.player?.full_name ?? 'Jugador no disponible' }}</small></span>
                 <small>{{ event.minute }}'</small>
               </div>
               <p v-if="!events?.length" class="muted">Sin eventos cargados para este partido.</p>

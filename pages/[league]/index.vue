@@ -17,6 +17,7 @@ const selectedTournamentId = ref(tournaments.value?.[0]?.id ?? '')
 const selectedTournament = computed(() =>
   tournaments.value?.find((t) => t.id === selectedTournamentId.value) ?? null
 )
+const { data: playerStats } = useTournamentPlayerStats(selectedTournamentId)
 
 const { data: standings, refresh: refreshStandings } = await useAsyncData(
   'standings-selected',
@@ -105,6 +106,7 @@ function formatKickoff(iso: string | null) {
         <div class="navlinks">
           <a href="#tabla">Tabla</a>
           <a href="#fixture">Fixture</a>
+          <a href="#goleadores">Goleadores</a>
           <a href="#clubes">Clubes</a>
           <a href="#historia">Historia</a>
           <NuxtLink :to="`/${leagueSlug}/admin`">Administrar</NuxtLink>
@@ -249,6 +251,31 @@ function formatKickoff(iso: string | null) {
             </div>
           </section>
         </div>
+      </section>
+
+      <section id="goleadores" class="section">
+        <div class="page-title">
+          <div><h2>Goleadores y tarjetas</h2><p class="muted">{{ selectedTournament?.name ?? 'Sin torneo seleccionado' }}</p></div>
+        </div>
+        <div v-if="playerStats?.length" class="grid">
+          <section class="panel">
+            <div class="panel-head"><h2>Goleadores</h2><span class="muted">Gol convertido</span></div>
+            <div class="panel-body list">
+              <div v-for="(player, i) in playerStats.filter((p) => p.goals > 0)" :key="`goal-${player.player_id}`" class="item">
+                <span style="display: flex; align-items: center; gap: 10px"><span class="pos" :class="{ gold: i === 0, silver: i === 1, bronze: i === 2 }">{{ i + 1 }}</span><span class="crest" style="width: 36px; height: 42px; margin: 0; border-radius: 8px"><img v-if="player.photo_url" :src="player.photo_url" :alt="player.player_name" style="padding: 0; object-fit: cover" /><span v-else class="fallback">{{ player.player_name.slice(0, 2).toUpperCase() }}</span></span><span><b>{{ player.player_name }}</b><small>{{ player.team_name ?? 'Sin equipo' }}</small></span></span><b>{{ player.goals }}</b>
+              </div>
+              <p v-if="!playerStats.some((p) => p.goals > 0)" class="muted">Todavía no hay goles atribuidos a jugadores.</p>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Tarjetas</h2><span class="muted">Amarillas · Rojas</span></div>
+            <div class="panel-body list">
+              <div v-for="player in playerStats.filter((p) => p.yellow_cards > 0 || p.red_cards > 0)" :key="`card-${player.player_id}`" class="item"><span style="display: flex; align-items: center; gap: 10px"><span class="crest" style="width: 36px; height: 42px; margin: 0; border-radius: 8px"><img v-if="player.photo_url" :src="player.photo_url" :alt="player.player_name" style="padding: 0; object-fit: cover" /><span v-else class="fallback">{{ player.player_name.slice(0, 2).toUpperCase() }}</span></span><span><b>{{ player.player_name }}</b><small>{{ player.team_name ?? 'Sin equipo' }}</small></span></span><span>{{ player.yellow_cards }} · {{ player.red_cards }}</span></div>
+              <p v-if="!playerStats.some((p) => p.yellow_cards > 0 || p.red_cards > 0)" class="muted">Todavía no hay tarjetas atribuidas a jugadores.</p>
+            </div>
+          </section>
+        </div>
+        <section v-else class="panel"><div class="panel-body"><p class="empty">Todavía no hay eventos atribuidos a jugadores en este torneo.</p></div></section>
       </section>
 
       <section id="clubes" class="section">
