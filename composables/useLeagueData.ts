@@ -71,8 +71,27 @@ export type MatchWithTeams = {
   away_score: number
   score_source: 'events' | 'manual'
   referee_id: string | null
-  home_team: { id: string; name: string }
-  away_team: { id: string; name: string }
+  home_team: { id: string; name: string; logo_url?: string | null; short_name?: string | null }
+  away_team: { id: string; name: string; logo_url?: string | null; short_name?: string | null }
+}
+
+export type MatchDetail = MatchWithTeams & {
+  tournament_id: string
+  venue: string | null
+  tournament: { id: string; name: string; league_id: string }
+  referee: { id: string; full_name: string } | null
+}
+
+export type MatchEvent = {
+  id: string
+  minute: number
+  extra_minute: number | null
+  type: 'goal' | 'own_goal' | 'yellow_card' | 'red_card' | 'substitution'
+  team_id: string
+  team: { id: string; name: string }
+  player: { full_name: string } | null
+  player_in: { full_name: string } | null
+  player_out: { full_name: string } | null
 }
 
 export type ChampionEntry = {
@@ -310,6 +329,46 @@ export function useTournamentMatches(tournamentId: string, status?: string) {
     const { data, error } = await query
     if (error) throw error
     return (data as unknown as MatchWithTeams[]) ?? []
+  })
+}
+
+export function useMatchById(matchId: string) {
+  const supabase = useSupabaseClient()
+  return useAsyncData<MatchDetail | null>(`match:${matchId}`, async () => {
+    const { data, error } = await supabase
+      .from('matches')
+      .select(
+        'id, tournament_id, scheduled_at, matchday, venue, status, home_score, away_score, score_source, referee_id,' +
+          'home_team:teams!matches_home_team_id_fkey(id, name, logo_url, short_name),' +
+          'away_team:teams!matches_away_team_id_fkey(id, name, logo_url, short_name),' +
+          'tournament:tournaments!matches_tournament_id_fkey(id, name, league_id),' +
+          'referee:referees!matches_referee_id_fkey(id, full_name)'
+      )
+      .eq('id', matchId)
+      .maybeSingle()
+    if (error) throw error
+    return data as unknown as MatchDetail | null
+  })
+}
+
+export function useMatchEvents(matchId: string, enabled = true) {
+  const supabase = useSupabaseClient()
+  return useAsyncData<MatchEvent[]>(`match-events:${matchId}`, async () => {
+    if (!enabled) return []
+    const { data, error } = await supabase
+      .from('match_events')
+      .select(
+        'id, minute, extra_minute, type, team_id,' +
+          'team:teams!match_events_team_id_fkey(id, name),' +
+          'player:players!match_events_player_id_fkey(full_name),' +
+          'player_in:players!match_events_player_in_id_fkey(full_name),' +
+          'player_out:players!match_events_player_out_id_fkey(full_name)'
+      )
+      .eq('match_id', matchId)
+      .order('minute', { ascending: true })
+      .order('extra_minute', { ascending: true, nullsFirst: true })
+    if (error) throw error
+    return (data as unknown as MatchEvent[]) ?? []
   })
 }
 
