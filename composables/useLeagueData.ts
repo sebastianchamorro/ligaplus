@@ -51,6 +51,17 @@ export type StandingsRow = {
   points: number
 }
 
+export type TournamentPlayerStats = {
+  player_id: string
+  player_name: string
+  team_id: string | null
+  team_name: string | null
+  photo_url: string | null
+  goals: number
+  yellow_cards: number
+  red_cards: number
+}
+
 export type MatchWithTeams = {
   id: string
   scheduled_at: string | null
@@ -238,17 +249,17 @@ export function useLeagueReferees(leagueId: string) {
   })
 }
 
-export function useTeamPlayers(teamId: string) {
+export function useTeamPlayers(teamId: MaybeRef<string>) {
   const supabase = useSupabaseClient()
-  return useAsyncData<Player[]>(`players:${teamId}`, async () => {
+  return useAsyncData<Player[]>(() => `players:${toValue(teamId)}`, async () => {
     const { data, error } = await supabase
       .from('players')
       .select('id, team_id, full_name, shirt_number, position, photo_url')
-      .eq('team_id', teamId)
+      .eq('team_id', toValue(teamId))
       .order('shirt_number')
     if (error) throw error
     return data ?? []
-  })
+  }, { watch: [teamId] })
 }
 
 export function useTeamStaff(teamId: string) {
@@ -271,6 +282,16 @@ export function useTournamentStandings(tournamentId: string) {
     if (error) throw error
     return (data as StandingsRow[]) ?? []
   })
+}
+
+export function useTournamentPlayerStats(tournamentId: Ref<string>) {
+  const supabase = useSupabaseClient()
+  return useAsyncData<TournamentPlayerStats[]>(() => `player-stats:${toValue(tournamentId)}`, async () => {
+    if (!toValue(tournamentId)) return []
+    const { data, error } = await supabase.rpc('tournament_player_stats', { p_tournament_id: toValue(tournamentId) })
+    if (error) throw error
+    return (data as TournamentPlayerStats[]) ?? []
+  }, { watch: [tournamentId] })
 }
 
 export function useTournamentMatches(tournamentId: string, status?: string) {
