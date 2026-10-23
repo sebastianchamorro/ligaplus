@@ -60,7 +60,8 @@ const fixtureByMatchday = computed(() => {
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(match)
   }
-  return [...groups.entries()].sort((a, b) => a[0] - b[0])
+  // Más nueva primero: es la lista que un fan quiere ver arriba al entrar.
+  return [...groups.entries()].sort((a, b) => b[0] - a[0])
 })
 
 const activeTeams = computed(() => (teams.value ?? []).filter((t) => t.status === 'active'))
@@ -225,8 +226,11 @@ function formatKickoff(iso: string | null) {
               </div>
             </ClientOnly>
             <div class="panel-body list">
-              <template v-for="[matchday, games] in fixtureByMatchday" :key="matchday">
-                <div class="subsection-label">{{ matchday ? `Fecha ${matchday}` : 'Fecha a confirmar' }}</div>
+              <details v-for="[matchday, games] in fixtureByMatchday" :key="matchday" class="fixture-matchday">
+                <summary class="subsection-label">
+                  <Icon name="lucide:chevron-right" class="fixture-chevron" />
+                  <span>{{ matchday ? `Fecha ${matchday}` : 'Fecha a confirmar' }}</span>
+                </summary>
                 <div v-for="game in games" :key="game.id" class="item">
                 <NuxtLink :to="`/${leagueSlug}/partidos/${game.id}`" style="flex: 1; min-width: 0">
                   <b>{{ game.home_team.name }} <template v-if="game.status === 'finished'">{{ game.home_score }} - {{ game.away_score }}</template><template v-else>vs</template> {{ game.away_team.name }}</b>
@@ -259,7 +263,7 @@ function formatKickoff(iso: string | null) {
                   </template>
                 </span>
                 </div>
-              </template>
+              </details>
               <p v-if="!fixture?.length" class="muted">Todavía no hay partidos en este torneo.</p>
             </div>
           </section>

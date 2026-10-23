@@ -223,6 +223,36 @@
   background: var(--line);
 }
 
+/* Fixture completo como acordeón: cada fecha arranca cerrada, se abre al tocarla. */
+.fixture-matchday {
+  margin-bottom: 8px;
+}
+
+.fixture-matchday > summary {
+  list-style: none;
+  cursor: pointer;
+  /* .subsection-label trae un margin pensado para un divisor único; acá se repite
+     una vez por fecha, así que lo recortamos a algo razonable para una lista. */
+  margin: 0 0 10px;
+}
+
+.fixture-matchday > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fixture-matchday > summary .fixture-chevron {
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+.fixture-matchday[open] > summary .fixture-chevron {
+  transform: rotate(90deg);
+}
+
+.fixture-matchday > .item {
+  margin-bottom: 10px;
+}
+
 /* ---------------------------------------------------------------- */
 /* Champions timeline                                                  */
 /* ---------------------------------------------------------------- */
